@@ -15,26 +15,35 @@ Download the [latest release for your architecture](https://github.com/adamdecaf
 ## Configuration
 ```yaml
 checks:
-  - name: "<string>"
+  - id: "<string>"
+    name: "<string>"
     description: "<string>"
     schedule:
       every: "<duration>"
+    pagerduty:
+      apiToken: "<string>"
+
+  - id: "<string>"
+    name: "<string>"
+    schedule:
       weekdays:
         timezone: "<string>"
         times:
           - "<string>"
+
+  - id: "<string>"
+    name: "<string>"
+    schedule:
       bankingDays:
         timezone: "<string>"
         times:
           - "<string>"
-    pagerduty:
-      # TODO: example config
 ```
 
 
 ## Usage
 
-`PUT /v1/checks/{name}/check-in`
+`PUT /v1/checks/{id}/check-in`
 
 Successful response, or failure. Optional: `Extension` time.Duration value
 

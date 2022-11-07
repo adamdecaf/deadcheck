@@ -15,8 +15,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package pd
+package api
 
-type Config struct {
-	AuthToken string `yaml:"authToken"`
+import (
+	"net/http"
+
+	"github.com/adamdecaf/deadcheck/internal/config"
+
+	"github.com/moov-io/base/log"
+)
+
+func Server(logger log.Logger, conf config.Config) (*http.Server, error) {
+	// TODO(adam): mux Router
+
+	// PUT /checks/{id}/check-in
+
+	return nil, nil
 }

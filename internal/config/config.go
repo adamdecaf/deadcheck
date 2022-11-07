@@ -23,14 +23,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/adamdecaf/deadcheck/internal/check"
 	"github.com/spf13/viper"
 )
-
-type Config struct {
-	Checks []check.Config
-}
 
 func Load(path string) (*Config, error) {
 	path = strings.TrimSpace(path)
@@ -59,4 +55,35 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 	return &cfg, nil
+}
+
+type Config struct {
+	Checks []Check
+}
+
+type Check struct {
+	ID          string `yaml:"id"`
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+
+	Schedule ScheduleConfig `yaml:schedule"`
+
+	PagerDuty *PagerDuty `yaml:"pagerduty"`
+}
+
+type ScheduleConfig struct {
+	Every       *time.Duration `yaml:"duration"`
+	Weekdays    *PartialDay    `yaml:"weekdays"`
+	BankingDays *PartialDay    `yaml:"bankingDays"`
+}
+
+type PartialDay struct {
+	Timezone string   `yaml:"timezone"`
+	Times    []string `yaml:"times"`
+}
+
+type PagerDuty struct {
+	AuthToken string `yaml:"authToken"`
+
+	// TODO(adam): Read 'serviceID' to lookup service, rather than by name
 }

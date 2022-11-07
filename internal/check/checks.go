@@ -18,27 +18,11 @@
 package check
 
 import (
-	"time"
+	"github.com/adamdecaf/deadcheck/internal/config"
 
-	"github.com/adamdecaf/deadcheck/internal/pd"
+	"github.com/moov-io/base/log"
 )
 
-type Config struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
-
-	Schedule ScheduleConfig `yaml:schedule"`
-
-	PagerDuty *pd.Config `yaml:"pagerduty"`
-}
-
-type ScheduleConfig struct {
-	Every       *time.Duration `yaml:"duration"`
-	Weekdays    PartialDay     `yaml:"weekdays"`
-	BankingDays PartialDay     `yaml:"bankingDays"`
-}
-
-type PartialDay struct {
-	Timezone string   `yaml:"timezone"`
-	Times    []string `yaml:"times"`
+func Setup(logger log.Logger, conf config.Config) error {
+	return nil
 }
