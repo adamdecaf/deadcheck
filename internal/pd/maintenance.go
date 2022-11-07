@@ -63,7 +63,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 		switch resp.MaintenanceWindows[i].Description {
 		case everyDescription:
 			foundEvery = true
-			maint, err := c.ensureMaintenanceWindow_Every(check.Schedule.Every, &resp.MaintenanceWindows[i])
+			maint, err := c.ensureMaintenanceWindow_Every(check.Schedule.Every, service, &resp.MaintenanceWindows[i])
 			if err != nil {
 				return nil, err
 			}
@@ -73,7 +73,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 
 		case weekdaysDescription:
 			foundWeekday = true
-			maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.Weekdays, &resp.MaintenanceWindows[i])
+			maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.Weekdays, service, &resp.MaintenanceWindows[i])
 			if err != nil {
 				return nil, err
 			}
@@ -83,7 +83,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 
 		case bankingDaysDescription:
 			foundBankingDays = true
-			maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.BankingDays, &resp.MaintenanceWindows[i])
+			maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.BankingDays, service, &resp.MaintenanceWindows[i])
 			if err != nil {
 				return nil, err
 			}
@@ -94,7 +94,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 	}
 
 	if !foundEvery {
-		maint, err := c.ensureMaintenanceWindow_Every(check.Schedule.Every, nil)
+		maint, err := c.ensureMaintenanceWindow_Every(check.Schedule.Every, service, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +104,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 	}
 
 	if !foundWeekday {
-		maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.Weekdays, nil)
+		maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.Weekdays, service, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +114,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 	}
 
 	if !foundBankingDays {
-		maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.BankingDays, nil)
+		maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.BankingDays, service, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -126,34 +126,45 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 	return found, nil
 }
 
-func (c *client) ensureMaintenanceWindow_Every(every *time.Duration, maintWindow *pagerduty.MaintenanceWindow) (*pagerduty.MaintenanceWindow, error) {
+func (c *client) ensureMaintenanceWindow_Every(every *time.Duration, service *pagerduty.Service, maintWindow *pagerduty.MaintenanceWindow) (*pagerduty.MaintenanceWindow, error) {
 	if every == nil {
 		return nil, nil
 	}
 	if maintWindow == nil {
-		return c.createMaintenanceWindow()
+		return c.createMaintenanceWindow(service.ID, fmt.Sprintf("every %v", every))
 	}
-	return nil, nil
+
+	// TODO(adam): update if start/end times are off
+
+	return maintWindow, nil
 }
 
-func (c *client) ensureMaintenanceWindow_PartialDay(partial *config.PartialDay, maintWindow *pagerduty.MaintenanceWindow) (*pagerduty.MaintenanceWindow, error) {
+func (c *client) ensureMaintenanceWindow_PartialDay(partial *config.PartialDay, service *pagerduty.Service, maintWindow *pagerduty.MaintenanceWindow) (*pagerduty.MaintenanceWindow, error) {
 	if partial == nil {
 		return nil, nil
 	}
 	if maintWindow == nil {
-		return c.createMaintenanceWindow()
+		// TODO(adam): Need to create multiple windows...
+		return c.createMaintenanceWindow(service.ID, "partial day")
 	}
-	return nil, nil
+
+	// TODO(adam): update if start/end times are off
+
+	return maintWindow, nil
 }
 
-func (c *client) createMaintenanceWindow() (*pagerduty.MaintenanceWindow, error) {
-	return nil, nil
-}
+// TODO(adam): endpoint check-in extends maint window
 
-// func (c *Client) CreateMaintenanceWindowWithContext(ctx context.Context, from string, o MaintenanceWindow) (*MaintenanceWindow, error) {
-//
-// type MaintenanceWindow struct {
-// 	StartTime      string      `json:"start_time"`
-// 	EndTime        string      `json:"end_time"`
-// 	Description    string      `json:"description"`
-// 	Services       []APIObject `json:"services"`
+func (c *client) createMaintenanceWindow(serviceID, desc string) (*pagerduty.MaintenanceWindow, error) {
+	ctx := context.Background()
+	return c.underlying.CreateMaintenanceWindowWithContext(ctx, "from - todo", pagerduty.MaintenanceWindow{
+		// 	StartTime      string      `json:"start_time"`
+		// 	EndTime        string      `json:"end_time"`
+		Description: desc,
+		Services: []pagerduty.APIObject{
+			{
+				ID: serviceID,
+			},
+		},
+	})
+}
