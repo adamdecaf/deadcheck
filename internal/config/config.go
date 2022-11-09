@@ -78,8 +78,22 @@ type ScheduleConfig struct {
 }
 
 type PartialDay struct {
-	Timezone string   `yaml:"timezone"`
-	Times    []string `yaml:"times"`
+	Timezone string  `yaml:"timezone"`
+	Times    []Times `yaml:"times"`
+}
+
+type Times struct {
+	Start string `yaml:"start"`
+	End   string `yaml:"end"`
+}
+
+func (t Times) StartTime() (time.Time, error) {
+	// TODO(adam): parse more formats
+	return time.Parse("15:04", t.Start)
+}
+
+func (t Times) EndTime() (time.Time, error) {
+	return time.Parse("15:04", t.End)
 }
 
 type PagerDuty struct {

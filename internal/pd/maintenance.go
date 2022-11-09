@@ -19,6 +19,7 @@ package pd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -34,8 +35,8 @@ import (
 //  Support extending a maint window
 
 func (c *client) setupMaintenanceWindows(check config.Check, service *pagerduty.Service) error {
-
-	return nil
+	_, err := c.findMaintenanceWindows(check, service)
+	return err
 }
 
 const (
@@ -131,7 +132,9 @@ func (c *client) ensureMaintenanceWindow_Every(every *time.Duration, service *pa
 		return nil, nil
 	}
 	if maintWindow == nil {
-		return c.createMaintenanceWindow(service.ID, fmt.Sprintf("every %v", every))
+		start := time.Now().In(time.UTC)
+		end := start.Add(*every)
+		return c.createMaintenanceWindow(service.ID, fmt.Sprintf("every %v", every), start, end)
 	}
 
 	// TODO(adam): update if start/end times are off
@@ -144,8 +147,27 @@ func (c *client) ensureMaintenanceWindow_PartialDay(partial *config.PartialDay, 
 		return nil, nil
 	}
 	if maintWindow == nil {
+		if len(partial.Times) == 0 {
+			return nil, errors.New("missing Times")
+		}
+
+		loc, err := time.LoadLocation(partial.Timezone)
+		if err != nil {
+			return nil, fmt.Errorf("parsing Timezone: %v", err)
+		}
+
+		start, err := partial.Times[0].StartTime()
+		if err != nil {
+			return nil, fmt.Errorf("parsing StartTime: %v", err)
+		}
+
+		end, err := partial.Times[0].StartTime()
+		if err != nil {
+			return nil, fmt.Errorf("parsing EndTime: %v", err)
+		}
+
 		// TODO(adam): Need to create multiple windows...
-		return c.createMaintenanceWindow(service.ID, "partial day")
+		return c.createMaintenanceWindow(service.ID, "partial day", start.In(loc), end.In(loc))
 	}
 
 	// TODO(adam): update if start/end times are off
@@ -155,15 +177,20 @@ func (c *client) ensureMaintenanceWindow_PartialDay(partial *config.PartialDay, 
 
 // TODO(adam): endpoint check-in extends maint window
 
-func (c *client) createMaintenanceWindow(serviceID, desc string) (*pagerduty.MaintenanceWindow, error) {
+const (
+	maintWindowTimeFormat = "2006-01-02T15:04:05-07:00" // Example: 2015-11-09T22:00:00-05:00
+)
+
+func (c *client) createMaintenanceWindow(serviceID, desc string, start, end time.Time) (*pagerduty.MaintenanceWindow, error) {
 	ctx := context.Background()
 	return c.underlying.CreateMaintenanceWindowWithContext(ctx, "from - todo", pagerduty.MaintenanceWindow{
-		// 	StartTime      string      `json:"start_time"`
-		// 	EndTime        string      `json:"end_time"`
+		StartTime:   start.Format(maintWindowTimeFormat),
+		EndTime:     end.Format(maintWindowTimeFormat),
 		Description: desc,
 		Services: []pagerduty.APIObject{
 			{
-				ID: serviceID,
+				ID:   serviceID,
+				Type: "service_reference",
 			},
 		},
 	})

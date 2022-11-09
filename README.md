@@ -30,7 +30,8 @@ checks:
       weekdays:
         timezone: "<string>"
         times:
-          - "<string>"
+          - start: "<string>"
+            end: "<string>"
 
   - id: "<string>"
     name: "<string>"
@@ -38,7 +39,8 @@ checks:
       bankingDays:
         timezone: "<string>"
         times:
-          - "<string>"
+          - start: "<string>"
+            end: "<string>"
 ```
 
 

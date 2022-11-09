@@ -27,6 +27,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const escalationPolicy = "PF5G8GH" // 'adam - test'
+
 func TestService__Every(t *testing.T) {
 	every := 30 * time.Minute
 	conf := config.Check{
@@ -36,7 +38,33 @@ func TestService__Every(t *testing.T) {
 			Every: &every,
 		},
 		PagerDuty: &config.PagerDuty{
-			EscalationPolicy: "PF5G8GH", // 'adam - test'
+			EscalationPolicy: escalationPolicy,
+		},
+	}
+	pdc := newTestClient(t)
+	err := pdc.Setup(conf)
+	require.NoError(t, err)
+
+	defer deleteService(t, pdc)
+}
+
+func TestService__Weekdays(t *testing.T) {
+	conf := config.Check{
+		ID:   base.ID(),
+		Name: t.Name(),
+		Schedule: config.ScheduleConfig{
+			Weekdays: &config.PartialDay{
+				Timezone: "America/New_York",
+				Times: []config.Times{
+					{
+						Start: "15:04",
+						End:   "17:32",
+					},
+				},
+			},
+		},
+		PagerDuty: &config.PagerDuty{
+			EscalationPolicy: escalationPolicy,
 		},
 	}
 	pdc := newTestClient(t)
