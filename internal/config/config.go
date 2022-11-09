@@ -83,7 +83,8 @@ type PartialDay struct {
 }
 
 type PagerDuty struct {
-	AuthToken string `yaml:"authToken"`
+	ApiKey           string `yaml:"apiKey"`
+	EscalationPolicy string `yaml:"escalationPolicy"`
 
 	// TODO(adam): Read 'serviceID' to lookup service, rather than by name
 }

@@ -21,7 +21,8 @@ checks:
     schedule:
       every: "<duration>"
     pagerduty:
-      apiToken: "<string>"
+      apiKey: "<string>"
+      escalationPolicy: "<string>"
 
   - id: "<string>"
     name: "<string>"

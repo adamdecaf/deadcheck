@@ -18,47 +18,30 @@
 package pd
 
 import (
-	"context"
-	"fmt"
+	"os"
+	"testing"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 
-	"github.com/PagerDuty/go-pagerduty"
+	"github.com/stretchr/testify/require"
 )
 
-type Client interface {
-	Setup(check config.Check) error
+func newTestClient(t *testing.T) *client {
+	t.Helper()
+
+	if testing.Short() {
+		t.Skip("skipping because -short is set")
+	}
+
+	cc, err := NewClient(&config.PagerDuty{
+		ApiKey: os.Getenv("PAGERDUTY_TEST_KEY"),
+	})
+	require.NoError(t, err)
+
+	return cc.(*client)
 }
 
-func NewClient(conf *config.PagerDuty) (Client, error) {
-	if conf == nil {
-		return nil, nil
-	}
-
-	cc := &client{
-		underlying: pagerduty.NewClient(conf.ApiKey),
-	}
-	if err := cc.ping(); err != nil {
-		return nil, err
-	}
-
-	return cc, nil
-}
-
-type client struct {
-	underlying *pagerduty.Client
-
-	service *pagerduty.Service
-}
-
-func (c *client) ping() error {
-	ctx := context.Background()
-	resp, err := c.underlying.ListAbilitiesWithContext(ctx)
-	if err != nil {
-		return fmt.Errorf("pagerduty list abilities: %v", err)
-	}
-	if len(resp.Abilities) <= 0 {
-		return fmt.Errorf("pagerduty: missing abilities")
-	}
-	return nil
+func TestClient(t *testing.T) {
+	pdc := newTestClient(t)
+	require.NoError(t, pdc.ping())
 }

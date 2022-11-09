@@ -18,47 +18,39 @@
 package pd
 
 import (
-	"context"
-	"fmt"
+	"testing"
+	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 
-	"github.com/PagerDuty/go-pagerduty"
+	"github.com/moov-io/base"
+	"github.com/stretchr/testify/require"
 )
 
-type Client interface {
-	Setup(check config.Check) error
+func TestService__Every(t *testing.T) {
+	every := 30 * time.Minute
+	conf := config.Check{
+		ID:   base.ID(),
+		Name: t.Name(),
+		Schedule: config.ScheduleConfig{
+			Every: &every,
+		},
+		PagerDuty: &config.PagerDuty{
+			EscalationPolicy: "PF5G8GH", // 'adam - test'
+		},
+	}
+	pdc := newTestClient(t)
+	err := pdc.Setup(conf)
+	require.NoError(t, err)
+
+	defer deleteService(t, pdc)
 }
 
-func NewClient(conf *config.PagerDuty) (Client, error) {
-	if conf == nil {
-		return nil, nil
-	}
+func deleteService(t *testing.T, cc *client) {
+	t.Helper()
 
-	cc := &client{
-		underlying: pagerduty.NewClient(conf.ApiKey),
-	}
-	if err := cc.ping(); err != nil {
-		return nil, err
-	}
-
-	return cc, nil
-}
-
-type client struct {
-	underlying *pagerduty.Client
-
-	service *pagerduty.Service
-}
-
-func (c *client) ping() error {
-	ctx := context.Background()
-	resp, err := c.underlying.ListAbilitiesWithContext(ctx)
+	err := cc.deleteService()
 	if err != nil {
-		return fmt.Errorf("pagerduty list abilities: %v", err)
+		t.Fatal(err)
 	}
-	if len(resp.Abilities) <= 0 {
-		return fmt.Errorf("pagerduty: missing abilities")
-	}
-	return nil
 }

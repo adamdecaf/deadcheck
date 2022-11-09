@@ -66,8 +66,24 @@ func (c *client) findService(name string) (*pagerduty.Service, error) {
 }
 
 func (c *client) createService(check config.Check) (*pagerduty.Service, error) {
-	return c.underlying.CreateService(pagerduty.Service{
+	svc := pagerduty.Service{
 		Name:        check.Name,
 		Description: check.Description,
-	})
+	}
+
+	if check.PagerDuty.EscalationPolicy != "" {
+		svc.EscalationPolicy.ID = check.PagerDuty.EscalationPolicy
+		svc.EscalationPolicy.Type = "escalation_policy_reference"
+	}
+
+	return c.underlying.CreateService(svc)
+}
+
+func (c *client) deleteService() error {
+	if c == nil || c.service == nil {
+		return nil
+	}
+
+	ctx := context.Background()
+	return c.underlying.DeleteServiceWithContext(ctx, c.service.ID)
 }
