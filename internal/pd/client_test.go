@@ -19,6 +19,7 @@ package pd
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
@@ -33,8 +34,13 @@ func newTestClient(t *testing.T) *client {
 		t.Skip("skipping because -short is set")
 	}
 
+	apiKey := strings.TrimSpace(os.Getenv("PAGERDUTY_TEST_KEY"))
+	if apiKey == "" {
+		t.Skip("no PAGERDUTY_TEST_KEY specified, skipping test..")
+	}
+
 	cc, err := NewClient(&config.PagerDuty{
-		ApiKey: os.Getenv("PAGERDUTY_TEST_KEY"),
+		ApiKey: apiKey,
 	})
 	require.NoError(t, err)
 

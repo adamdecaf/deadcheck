@@ -34,8 +34,8 @@ import (
 //
 //  Support extending a maint window
 
-func (c *client) setupMaintenanceWindows(check config.Check, service *pagerduty.Service) error {
-	_, err := c.findMaintenanceWindows(check, service)
+func (c *client) setupMaintenanceWindows(check config.Check) error {
+	_, err := c.findMaintenanceWindows(check)
 	return err
 }
 
@@ -45,11 +45,11 @@ const (
 	bankingDaysDescription = "banking-days"
 )
 
-func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.Service) ([]*pagerduty.MaintenanceWindow, error) {
+func (c *client) findMaintenanceWindows(check config.Check) ([]*pagerduty.MaintenanceWindow, error) {
 	ctx := context.Background()
 	resp, err := c.underlying.ListMaintenanceWindowsWithContext(ctx, pagerduty.ListMaintenanceWindowsOptions{
 		Limit:      100,
-		ServiceIDs: []string{service.ID},
+		ServiceIDs: []string{c.service.ID},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("listing maint windows: %v", err)
@@ -64,7 +64,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 		switch resp.MaintenanceWindows[i].Description {
 		case everyDescription:
 			foundEvery = true
-			maint, err := c.ensureMaintenanceWindow_Every(check.Schedule.Every, service, &resp.MaintenanceWindows[i])
+			maint, err := c.ensureMaintenanceWindow_Every(check.Schedule.Every, &resp.MaintenanceWindows[i])
 			if err != nil {
 				return nil, err
 			}
@@ -74,7 +74,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 
 		case weekdaysDescription:
 			foundWeekday = true
-			maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.Weekdays, service, &resp.MaintenanceWindows[i])
+			maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.Weekdays, &resp.MaintenanceWindows[i])
 			if err != nil {
 				return nil, err
 			}
@@ -84,7 +84,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 
 		case bankingDaysDescription:
 			foundBankingDays = true
-			maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.BankingDays, service, &resp.MaintenanceWindows[i])
+			maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.BankingDays, &resp.MaintenanceWindows[i])
 			if err != nil {
 				return nil, err
 			}
@@ -95,7 +95,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 	}
 
 	if !foundEvery {
-		maint, err := c.ensureMaintenanceWindow_Every(check.Schedule.Every, service, nil)
+		maint, err := c.ensureMaintenanceWindow_Every(check.Schedule.Every, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +105,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 	}
 
 	if !foundWeekday {
-		maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.Weekdays, service, nil)
+		maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.Weekdays, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +115,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 	}
 
 	if !foundBankingDays {
-		maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.BankingDays, service, nil)
+		maint, err := c.ensureMaintenanceWindow_PartialDay(check.Schedule.BankingDays, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -127,14 +127,14 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 	return found, nil
 }
 
-func (c *client) ensureMaintenanceWindow_Every(every *time.Duration, service *pagerduty.Service, maintWindow *pagerduty.MaintenanceWindow) (*pagerduty.MaintenanceWindow, error) {
+func (c *client) ensureMaintenanceWindow_Every(every *time.Duration, maintWindow *pagerduty.MaintenanceWindow) (*pagerduty.MaintenanceWindow, error) {
 	if every == nil {
 		return nil, nil
 	}
 	if maintWindow == nil {
 		start := time.Now().In(time.UTC)
 		end := start.Add(*every)
-		return c.createMaintenanceWindow(service.ID, fmt.Sprintf("every %v", every), start, end)
+		return c.createMaintenanceWindow(c.service.ID, fmt.Sprintf("every %v", every), start, end)
 	}
 
 	// TODO(adam): update if start/end times are off
@@ -142,7 +142,7 @@ func (c *client) ensureMaintenanceWindow_Every(every *time.Duration, service *pa
 	return maintWindow, nil
 }
 
-func (c *client) ensureMaintenanceWindow_PartialDay(partial *config.PartialDay, service *pagerduty.Service, maintWindow *pagerduty.MaintenanceWindow) (*pagerduty.MaintenanceWindow, error) {
+func (c *client) ensureMaintenanceWindow_PartialDay(partial *config.PartialDay, maintWindow *pagerduty.MaintenanceWindow) (*pagerduty.MaintenanceWindow, error) {
 	if partial == nil {
 		return nil, nil
 	}
@@ -151,28 +151,54 @@ func (c *client) ensureMaintenanceWindow_PartialDay(partial *config.PartialDay, 
 			return nil, errors.New("missing Times")
 		}
 
-		loc, err := time.LoadLocation(partial.Timezone)
+		start, end, err := determineStartEnd(time.Now(), partial.Timezone, partial.Times[0])
 		if err != nil {
-			return nil, fmt.Errorf("parsing Timezone: %v", err)
-		}
-
-		start, err := partial.Times[0].StartTime()
-		if err != nil {
-			return nil, fmt.Errorf("parsing StartTime: %v", err)
-		}
-
-		end, err := partial.Times[0].StartTime()
-		if err != nil {
-			return nil, fmt.Errorf("parsing EndTime: %v", err)
+			return nil, err
 		}
 
 		// TODO(adam): Need to create multiple windows...
-		return c.createMaintenanceWindow(service.ID, "partial day", start.In(loc), end.In(loc))
+		return c.createMaintenanceWindow(c.service.ID, "partial day", start, end)
 	}
 
 	// TODO(adam): update if start/end times are off
 
 	return maintWindow, nil
+}
+
+func determineStartEnd(initial time.Time, tz string, times config.Times) (time.Time, time.Time, error) {
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("parsing Timezone: %v", err)
+	}
+
+	start, err := times.StartTime()
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("parsing StartTime: %v", err)
+	}
+
+	end, err := times.EndTime()
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("parsing EndTime: %v", err)
+	}
+
+	today := initial.In(loc).Truncate(24 * time.Hour).Add(24 * time.Hour)
+
+	// When times don't have a year/month/day adjust it to today.
+	if start.Year() <= 1 {
+		start = time.Date(today.Year(), today.Month(), today.Day(), start.Hour(), start.Minute(), 0, 0, loc)
+	}
+	if end.Year() <= 1 {
+		end = time.Date(today.Year(), today.Month(), today.Day(), end.Hour(), end.Minute(), 0, 0, loc)
+	}
+
+	// When the start or end times are before now push it to the next day.
+	now := initial.In(loc)
+	if start.Before(now) || end.Before(now) {
+		start = start.Add(24 * time.Hour)
+		end = end.Add(24 * time.Hour)
+	}
+
+	return start.In(loc), end.In(loc), nil
 }
 
 // TODO(adam): endpoint check-in extends maint window

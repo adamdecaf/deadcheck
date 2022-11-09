@@ -42,7 +42,7 @@ func (c *client) Setup(check config.Check) error {
 	if service != nil {
 		c.service = service
 	}
-	return c.setupMaintenanceWindows(check, service)
+	return c.setupMaintenanceWindows(check)
 }
 
 func (c *client) findService(name string) (*pagerduty.Service, error) {
