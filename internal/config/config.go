@@ -66,7 +66,7 @@ type Check struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 
-	Schedule ScheduleConfig `yaml:schedule"`
+	Schedule ScheduleConfig `yaml:"schedule"`
 
 	PagerDuty *PagerDuty `yaml:"pagerduty"`
 }

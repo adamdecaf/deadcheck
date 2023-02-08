@@ -76,7 +76,8 @@ func (c *client) createService(check config.Check) (*pagerduty.Service, error) {
 		svc.EscalationPolicy.Type = "escalation_policy_reference"
 	}
 
-	return c.underlying.CreateService(svc)
+	ctx := context.Background() // TODO(adam):
+	return c.underlying.CreateServiceWithContext(ctx, svc)
 }
 
 func (c *client) deleteService() error {
