@@ -44,7 +44,9 @@ func newTestClient(t *testing.T) *client {
 	})
 	require.NoError(t, err)
 
-	return cc.(*client)
+	cl, ok := cc.(*client)
+	require.True(t, ok)
+	return cl
 }
 
 func TestClient(t *testing.T) {
