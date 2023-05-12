@@ -215,7 +215,7 @@ func (c *client) createMaintenanceWindow(serviceID, desc string, start, end time
 	})
 }
 
-func (c *client) updateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error {
+func (c *client) UpdateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error {
 	if maintWindow == nil {
 		return errors.New("nil MaintenanceWindow provided")
 	}

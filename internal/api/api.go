@@ -19,8 +19,10 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
+	"github.com/adamdecaf/deadcheck/internal/pd"
 
 	"github.com/moov-io/base/log"
 )
@@ -31,7 +33,22 @@ func Server(logger log.Logger, conf config.Config) (*http.Server, error) {
 	// PUT /checks/{id}/check-in
 
 	// TODO(adam): endpoint check-in extends maint window
-	// func (c *client) updateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
+	// func (c *client) UpdateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
+
+	cc := &controller{}
+	cc.CheckIn()
 
 	return nil, nil
+}
+
+type controller struct {
+	client pd.Client
+}
+
+func (c *controller) CheckIn() {
+	now := time.Now()
+	err := c.client.UpdateMaintenanceWindow(nil, now, now)
+	if err != nil {
+		panic(err)
+	}
 }

@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 
@@ -30,6 +31,8 @@ import (
 
 type Client interface {
 	Setup(check config.Check) error
+
+	UpdateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
 }
 
 func NewClient(conf *config.PagerDuty) (Client, error) {
