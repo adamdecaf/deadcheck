@@ -36,11 +36,23 @@ func newTestClient(t *testing.T) *client {
 
 	apiKey := strings.TrimSpace(os.Getenv("PAGERDUTY_TEST_KEY"))
 	if apiKey == "" {
-		t.Skip("no PAGERDUTY_TEST_KEY specified, skipping test..")
+		t.Skip("no PAGERDUTY_TEST_KEY specified, skipping test...")
+	}
+
+	escPolicy := os.Getenv("PAGERDUTY_ESCALATION_POLICY")
+	if escPolicy == "" {
+		t.Skip("no PAGERDUTY_ESCALATION_POLICY specified, skipping test...")
+	}
+
+	from := os.Getenv("PAGERDUTY_FROM_EMAIL")
+	if from == "" {
+		t.Skip("no PAGERDUTY_FROM_EMAIL specified, skipping test...")
 	}
 
 	cc, err := NewClient(&config.PagerDuty{
-		ApiKey: apiKey,
+		ApiKey:           apiKey,
+		EscalationPolicy: escPolicy,
+		From:             from,
 	})
 	require.NoError(t, err)
 

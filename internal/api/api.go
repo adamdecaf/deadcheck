@@ -30,5 +30,8 @@ func Server(logger log.Logger, conf config.Config) (*http.Server, error) {
 
 	// PUT /checks/{id}/check-in
 
+	// TODO(adam): endpoint check-in extends maint window
+	// func (c *client) updateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
+
 	return nil, nil
 }

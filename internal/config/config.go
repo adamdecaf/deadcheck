@@ -100,5 +100,8 @@ type PagerDuty struct {
 	ApiKey           string `yaml:"apiKey"`
 	EscalationPolicy string `yaml:"escalationPolicy"`
 
+	// From is an email address of a valid user associated with the account making the request
+	From string `yaml:"from"`
+
 	// TODO(adam): Read 'serviceID' to lookup service, rather than by name
 }

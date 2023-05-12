@@ -27,22 +27,37 @@ import (
 )
 
 func (c *client) Setup(check config.Check) error {
+	if check.PagerDuty == nil {
+		check.PagerDuty = &c.pdConfig
+	}
+
 	// List Services, grab by name, cache for future updates
 	service, err := c.findService(check.Name)
 	if err != nil {
-		return fmt.Errorf("finding pagerduty service: %v", err)
+		return fmt.Errorf("finding pagerduty service: %w", err)
 	}
 	if service == nil {
 		service, err = c.createService(check)
 		if err != nil {
-			return fmt.Errorf("creating pagerduty service: %v", err)
+			return fmt.Errorf("creating pagerduty service: %w", err)
 		}
 	}
-	// Cache the service for future calls
-	if service != nil {
-		c.service = service
+	// Setup an ongoing incident
+	incident, err := c.setupIncident(check, service)
+	if err != nil {
+		return fmt.Errorf("creating ongoing incident: %w", err)
 	}
-	return c.setupMaintenanceWindows(check)
+
+	// Cache the data for future calls
+	if service != nil && incident != nil {
+		c.storeSwitch(Switch{
+			check:    check,
+			service:  service,
+			incident: incident,
+		})
+	}
+
+	return c.setupMaintenanceWindows(check, service)
 }
 
 func (c *client) findService(name string) (*pagerduty.Service, error) {
@@ -80,11 +95,11 @@ func (c *client) createService(check config.Check) (*pagerduty.Service, error) {
 	return c.underlying.CreateServiceWithContext(ctx, svc)
 }
 
-func (c *client) deleteService() error {
-	if c == nil || c.service == nil {
+func (c *client) deleteService(service *pagerduty.Service) error {
+	if c == nil || service == nil {
 		return nil
 	}
 
 	ctx := context.Background()
-	return c.underlying.DeleteServiceWithContext(ctx, c.service.ID)
+	return c.underlying.DeleteServiceWithContext(ctx, service.ID)
 }

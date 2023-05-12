@@ -19,7 +19,9 @@ package pd
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 
@@ -36,6 +38,7 @@ func NewClient(conf *config.PagerDuty) (Client, error) {
 	}
 
 	cc := &client{
+		pdConfig:   *conf,
 		underlying: pagerduty.NewClient(conf.ApiKey),
 	}
 	if err := cc.ping(); err != nil {
@@ -46,9 +49,11 @@ func NewClient(conf *config.PagerDuty) (Client, error) {
 }
 
 type client struct {
+	pdConfig   config.PagerDuty
 	underlying *pagerduty.Client
 
-	service *pagerduty.Service
+	mu   sync.Mutex
+	data map[string]Switch
 }
 
 func (c *client) ping() error {
@@ -58,7 +63,32 @@ func (c *client) ping() error {
 		return fmt.Errorf("pagerduty list abilities: %v", err)
 	}
 	if len(resp.Abilities) <= 0 {
-		return fmt.Errorf("pagerduty: missing abilities")
+		return errors.New("pagerduty: missing abilities")
+	}
+	return nil
+}
+
+type Switch struct {
+	check config.Check
+
+	service  *pagerduty.Service
+	incident *pagerduty.Incident
+}
+
+func (c *client) storeSwitch(s Switch) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.data[s.check.ID] = s
+}
+
+func (c *client) readSwitch(check config.Check) *Switch {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	s, exists := c.data[check.ID]
+	if exists {
+		return &s
 	}
 	return nil
 }

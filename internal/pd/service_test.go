@@ -27,8 +27,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const escalationPolicy = "PF5G8GH" // 'adam - test'
-
 func TestService__Every(t *testing.T) {
 	every := 30 * time.Minute
 	conf := config.Check{
@@ -37,15 +35,14 @@ func TestService__Every(t *testing.T) {
 		Schedule: config.ScheduleConfig{
 			Every: &every,
 		},
-		PagerDuty: &config.PagerDuty{
-			EscalationPolicy: escalationPolicy,
-		},
 	}
 	pdc := newTestClient(t)
+	t.Cleanup(func() {
+		deleteService(t, pdc, conf)
+	})
+
 	err := pdc.Setup(conf)
 	require.NoError(t, err)
-
-	defer deleteService(t, pdc)
 }
 
 func TestService__Weekdays(t *testing.T) {
@@ -63,21 +60,23 @@ func TestService__Weekdays(t *testing.T) {
 				},
 			},
 		},
-		PagerDuty: &config.PagerDuty{
-			EscalationPolicy: escalationPolicy,
-		},
 	}
 	pdc := newTestClient(t)
+	t.Cleanup(func() {
+		deleteService(t, pdc, conf)
+	})
+
 	err := pdc.Setup(conf)
 	require.NoError(t, err)
-
-	defer deleteService(t, pdc)
 }
 
-func deleteService(t *testing.T, cc *client) {
+func deleteService(t *testing.T, cc *client, check config.Check) {
 	t.Helper()
 
-	err := cc.deleteService()
+	s := cc.readSwitch(check)
+	require.NotNil(t, s)
+
+	err := cc.deleteService(s.service)
 	if err != nil {
 		t.Fatal(err)
 	}
