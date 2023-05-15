@@ -67,7 +67,7 @@ func checkIn(logger log.Logger, instances *check.Instances) http.HandlerFunc {
 		})
 		logger.Log("handling check-in")
 
-		err := instances.CheckIn(checkID)
+		err := instances.CheckIn(r.Context(), checkID)
 		if err != nil {
 			logger.LogErrorf("problem during check-in: %v", err)
 			w.WriteHeader(http.StatusBadRequest)

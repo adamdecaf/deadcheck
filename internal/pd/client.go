@@ -33,7 +33,7 @@ type Client interface {
 	Setup(check config.Check) error
 
 	ReadSwitch(check config.Check) *Switch
-	UpdateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
+	UpdateMaintenanceWindow(ctx context.Context, maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
 }
 
 func NewClient(conf *config.PagerDuty) (Client, error) {

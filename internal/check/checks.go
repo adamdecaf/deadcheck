@@ -18,6 +18,7 @@
 package check
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
@@ -49,7 +50,7 @@ func Setup(logger log.Logger, conf *config.Config) (*Instances, error) {
 	}, nil
 }
 
-func (xs *Instances) CheckIn(checkID string) error {
+func (xs *Instances) CheckIn(ctx context.Context, checkID string) error {
 	var found *config.Check
 	for i := range xs.checks {
 		if xs.checks[i].ID == checkID {

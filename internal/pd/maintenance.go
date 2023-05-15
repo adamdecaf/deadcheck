@@ -215,7 +215,7 @@ func (c *client) createMaintenanceWindow(serviceID, desc string, start, end time
 	})
 }
 
-func (c *client) UpdateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error {
+func (c *client) UpdateMaintenanceWindow(ctx context.Context, maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error {
 	if maintWindow == nil {
 		return errors.New("nil MaintenanceWindow provided")
 	}
@@ -223,7 +223,6 @@ func (c *client) UpdateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindo
 	maintWindow.StartTime = start.Format(maintWindowTimeFormat)
 	maintWindow.EndTime = end.Format(maintWindowTimeFormat)
 
-	ctx := context.Background()
 	_, err := c.underlying.UpdateMaintenanceWindowWithContext(ctx, *maintWindow)
 	return err
 }
