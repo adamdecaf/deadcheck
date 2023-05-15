@@ -32,6 +32,7 @@ import (
 type Client interface {
 	Setup(check config.Check) error
 
+	ReadSwitch(check config.Check) *Switch
 	UpdateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
 }
 
@@ -85,7 +86,7 @@ func (c *client) storeSwitch(s Switch) {
 	c.data[s.check.ID] = s
 }
 
-func (c *client) readSwitch(check config.Check) *Switch {
+func (c *client) ReadSwitch(check config.Check) *Switch {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

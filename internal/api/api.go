@@ -18,37 +18,62 @@
 package api
 
 import (
+	"crypto/tls"
 	"net/http"
 	"time"
 
-	"github.com/adamdecaf/deadcheck/internal/config"
-	"github.com/adamdecaf/deadcheck/internal/pd"
+	"github.com/adamdecaf/deadcheck/internal/check"
 
+	"github.com/gorilla/mux"
 	"github.com/moov-io/base/log"
 )
 
-func Server(logger log.Logger, conf config.Config) (*http.Server, error) {
-	// TODO(adam): mux Router
+func Server(logger log.Logger, httpAddr string, instances *check.Instances) (*http.Server, error) {
+	router := mux.NewRouter()
+	serve := &http.Server{
+		Addr:    httpAddr,
+		Handler: router,
+		TLSConfig: &tls.Config{
+			InsecureSkipVerify:       false,
+			PreferServerCipherSuites: true,
+			MinVersion:               tls.VersionTLS12,
+		},
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  30 * time.Second,
+	}
 
-	// PUT /checks/{id}/check-in
+	router.
+		Methods("PUT").
+		Path("/checks/{checkID}/check-in").
+		HandlerFunc(checkIn(logger, instances))
 
-	// TODO(adam): endpoint check-in extends maint window
-	// func (c *client) UpdateMaintenanceWindow(maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
+	go func() {
+		err := serve.ListenAndServe()
+		if err != nil {
+			logger.Warn().Logf("http server: %v", err)
+		}
+	}()
 
-	cc := &controller{}
-	cc.CheckIn()
-
-	return nil, nil
+	return serve, nil
 }
 
-type controller struct {
-	client pd.Client
-}
+func checkIn(logger log.Logger, instances *check.Instances) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		checkID := mux.Vars(r)["checkID"]
 
-func (c *controller) CheckIn() {
-	now := time.Now()
-	err := c.client.UpdateMaintenanceWindow(nil, now, now)
-	if err != nil {
-		panic(err)
+		logger := logger.With(log.Fields{
+			"check_id": log.String(checkID),
+		})
+		logger.Log("handling check-in")
+
+		err := instances.CheckIn(checkID)
+		if err != nil {
+			logger.LogErrorf("problem during check-in: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }

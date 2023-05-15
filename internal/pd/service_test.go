@@ -73,7 +73,7 @@ func TestService__Weekdays(t *testing.T) {
 func deleteService(t *testing.T, cc *client, check config.Check) {
 	t.Helper()
 
-	s := cc.readSwitch(check)
+	s := cc.ReadSwitch(check)
 	require.NotNil(t, s)
 
 	err := cc.deleteService(s.service)

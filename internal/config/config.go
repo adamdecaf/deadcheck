@@ -58,7 +58,9 @@ func Load(path string) (*Config, error) {
 }
 
 type Config struct {
-	Checks []Check
+	Checks []Check `yaml:"checks"`
+
+	PagerDuty *PagerDuty `yaml:"pagerduty"`
 }
 
 type Check struct {

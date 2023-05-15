@@ -18,11 +18,58 @@
 package check
 
 import (
+	"fmt"
+
 	"github.com/adamdecaf/deadcheck/internal/config"
+	"github.com/adamdecaf/deadcheck/internal/pd"
 
 	"github.com/moov-io/base/log"
 )
 
-func Setup(logger log.Logger, conf config.Config) error {
+type Instances struct {
+	pdClient pd.Client
+	checks   []config.Check
+}
+
+func Setup(logger log.Logger, conf *config.Config) (*Instances, error) {
+	pdClient, err := pd.NewClient(conf.PagerDuty)
+	if err != nil {
+		return nil, fmt.Errorf("setting up base PD client: %w", err)
+	}
+	for i := range conf.Checks {
+		err := pdClient.Setup(conf.Checks[i])
+		if err != nil {
+			return nil, fmt.Errorf("problem setting up checks[%d]: %w", i, err)
+		}
+	}
+
+	return &Instances{
+		pdClient: pdClient,
+		checks:   conf.Checks,
+	}, nil
+}
+
+func (xs *Instances) CheckIn(checkID string) error {
+	var found *config.Check
+	for i := range xs.checks {
+		if xs.checks[i].ID == checkID {
+			found = &xs.checks[i]
+			break
+		}
+	}
+	if found == nil {
+		return fmt.Errorf("check %s not found", checkID)
+	}
+
+	sw := xs.pdClient.ReadSwitch(*found)
+	if sw == nil {
+		return fmt.Errorf("switch %s not found", found.ID)
+	}
+
+	// TODO(adam): adjust MW start/end
+
+	// Need to store/read MW from Switch
+	// err = xs.pdClient.UpdateMaintenanceWindow(sw.
+
 	return nil
 }

@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/PagerDuty/go-pagerduty v1.6.0
+	github.com/gorilla/mux v1.8.0
 	github.com/moov-io/base v0.42.0
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.2
