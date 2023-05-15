@@ -42,6 +42,13 @@ func (c *client) Setup(check config.Check) error {
 			return fmt.Errorf("creating pagerduty service: %w", err)
 		}
 	}
+
+	// Create the maintenance window
+	err = c.setupMaintenanceWindows(check, service)
+	if err != nil {
+		return fmt.Errorf("creating maintenance window: %w", err)
+	}
+
 	// Setup an ongoing incident
 	incident, err := c.setupIncident(check, service)
 	if err != nil {
@@ -57,7 +64,7 @@ func (c *client) Setup(check config.Check) error {
 		})
 	}
 
-	return c.setupMaintenanceWindows(check, service)
+	return nil
 }
 
 func (c *client) findService(name string) (*pagerduty.Service, error) {
