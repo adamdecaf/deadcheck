@@ -32,16 +32,21 @@ type Instances struct {
 	checks   []config.Check
 }
 
-func Setup(logger log.Logger, conf *config.Config) (*Instances, error) {
-	pdClient, err := pd.NewClient(conf.PagerDuty)
+func Setup(ctx context.Context, logger log.Logger, conf *config.Config) (*Instances, error) {
+	pdClient, err := pd.NewClient(conf.Alert.PagerDuty)
 	if err != nil {
 		return nil, fmt.Errorf("setting up base PD client: %w", err)
 	}
-	for i := range conf.Checks {
-		err := pdClient.Setup(conf.Checks[i])
+	for _, check := range conf.Checks {
+		service, err := pdClient.Setup(ctx, check)
 		if err != nil {
-			return nil, fmt.Errorf("problem setting up checks[%d]: %w", i, err)
+			return nil, fmt.Errorf("problem setting up check %v: %w", check.ID, err)
 		}
+
+		logger.Info().With(log.Fields{
+			"check_name":   log.String(check.Name),
+			"service_name": log.String(service.Name),
+		}).Logf("using service %v for check %v", service.ID, check.ID)
 	}
 
 	return &Instances{
@@ -62,10 +67,10 @@ func (xs *Instances) CheckIn(ctx context.Context, checkID string) error {
 		return fmt.Errorf("check %s not found", checkID)
 	}
 
-	sw := xs.pdClient.ReadSwitch(*found)
-	if sw == nil {
-		return fmt.Errorf("switch %s not found", found.ID)
-	}
+	// sw := xs.pdClient.ReadSwitch(*found)
+	// if sw == nil {
+	// 	return fmt.Errorf("switch %s not found", found.ID)
+	// }
 
 	// TODO(adam): adjust MW start/end
 

@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
@@ -30,9 +29,9 @@ import (
 )
 
 type Client interface {
-	Setup(check config.Check) error
+	Setup(ctx context.Context, check config.Check) (*pagerduty.Service, error)
+	SetupTrigger(ctx context.Context, check config.Check, service *pagerduty.Service) error
 
-	ReadSwitch(check config.Check) *Switch
 	UpdateMaintenanceWindow(ctx context.Context, maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
 }
 
@@ -55,10 +54,9 @@ func NewClient(conf *config.PagerDuty) (Client, error) {
 type client struct {
 	pdConfig   config.PagerDuty
 	underlying *pagerduty.Client
-
-	mu   sync.Mutex
-	data map[string]Switch
 }
+
+var _ Client = (&client{})
 
 func (c *client) ping() error {
 	ctx := context.Background()
@@ -68,31 +66,6 @@ func (c *client) ping() error {
 	}
 	if len(resp.Abilities) <= 0 {
 		return errors.New("pagerduty: missing abilities")
-	}
-	return nil
-}
-
-type Switch struct {
-	check config.Check
-
-	service  *pagerduty.Service
-	incident *pagerduty.Incident
-}
-
-func (c *client) storeSwitch(s Switch) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.data[s.check.ID] = s
-}
-
-func (c *client) ReadSwitch(check config.Check) *Switch {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	s, exists := c.data[check.ID]
-	if exists {
-		return &s
 	}
 	return nil
 }

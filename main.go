@@ -57,7 +57,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	instances, err := check.Setup(logger, conf)
+	instances, err := check.Setup(ctx, logger, conf)
 	if err != nil {
 		logger.Error().LogErrorf("setting up checks failed: %w", err)
 		os.Exit(1)

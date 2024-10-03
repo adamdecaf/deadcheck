@@ -14,7 +14,7 @@ Download the [latest release for your architecture](https://github.com/adamdecaf
 
 ## Configuration
 ```yaml
-checks:
+checks: # todo: rename to "expectedCheckins: " ???
   - id: "<string>"
     name: "<string>"
     description: "<string>"

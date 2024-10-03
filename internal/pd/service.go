@@ -19,6 +19,7 @@ package pd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
@@ -26,45 +27,33 @@ import (
 	"github.com/PagerDuty/go-pagerduty"
 )
 
-func (c *client) Setup(check config.Check) error {
-	if check.PagerDuty == nil {
-		check.PagerDuty = &c.pdConfig
+func (c *client) Setup(ctx context.Context, check config.Check) (*pagerduty.Service, error) {
+	if check.Alert.PagerDuty == nil {
+		check.Alert.PagerDuty = &c.pdConfig
 	}
 
 	// List Services, grab by name, cache for future updates
 	service, err := c.findService(check.Name)
 	if err != nil {
-		return fmt.Errorf("finding pagerduty service: %w", err)
+		return nil, fmt.Errorf("finding pagerduty service: %w", err)
 	}
 	if service == nil {
 		service, err = c.createService(check)
 		if err != nil {
-			return fmt.Errorf("creating pagerduty service: %w", err)
+			return nil, fmt.Errorf("creating pagerduty service: %w", err)
 		}
+	}
+	if service == nil {
+		return nil, errors.New("no service was setup")
 	}
 
 	// Create the maintenance window
 	err = c.setupMaintenanceWindows(check, service)
 	if err != nil {
-		return fmt.Errorf("creating maintenance window: %w", err)
+		return nil, fmt.Errorf("creating maintenance window: %w", err)
 	}
 
-	// Setup an ongoing incident
-	incident, err := c.setupIncident(check, service)
-	if err != nil {
-		return fmt.Errorf("creating ongoing incident: %w", err)
-	}
-
-	// Cache the data for future calls
-	if service != nil && incident != nil {
-		c.storeSwitch(Switch{
-			check:    check,
-			service:  service,
-			incident: incident,
-		})
-	}
-
-	return nil
+	return service, nil
 }
 
 func (c *client) findService(name string) (*pagerduty.Service, error) {
@@ -93,8 +82,8 @@ func (c *client) createService(check config.Check) (*pagerduty.Service, error) {
 		Description: check.Description,
 	}
 
-	if check.PagerDuty.EscalationPolicy != "" {
-		svc.EscalationPolicy.ID = check.PagerDuty.EscalationPolicy
+	if check.Alert.PagerDuty.EscalationPolicy != "" {
+		svc.EscalationPolicy.ID = check.Alert.PagerDuty.EscalationPolicy
 		svc.EscalationPolicy.Type = "escalation_policy_reference"
 	}
 

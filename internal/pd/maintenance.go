@@ -62,7 +62,7 @@ func (c *client) findMaintenanceWindows(check config.Check, service *pagerduty.S
 	var found []*pagerduty.MaintenanceWindow
 	for i := range resp.MaintenanceWindows {
 		switch resp.MaintenanceWindows[i].Description {
-		case everyDescription:
+		case everyDescription: // TODO(adam): every should probably be HH:00 + N (so every 15mins is :00, :15, :30, :45)
 			foundEvery = true
 			maint, err := c.ensureMaintenanceWindow_Every(check.Schedule.Every, service, &resp.MaintenanceWindows[i])
 			if err != nil {

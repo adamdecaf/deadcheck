@@ -18,43 +18,30 @@
 package pd
 
 import (
+	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/PagerDuty/go-pagerduty"
 	"github.com/adamdecaf/deadcheck/internal/config"
 
 	"github.com/moov-io/base"
 	"github.com/stretchr/testify/require"
 )
 
-func TestService__Every(t *testing.T) {
-	every := 30 * time.Minute
+func TestService__Setup(t *testing.T) {
+	ctx := context.Background()
+
 	conf := config.Check{
 		ID:   base.ID(),
-		Name: t.Name(),
-		Schedule: config.ScheduleConfig{
-			Every: &every,
-		},
-	}
-	pdc := newTestClient(t)
-	t.Cleanup(func() {
-		deleteService(t, pdc, conf)
-	})
-
-	err := pdc.Setup(conf)
-	require.NoError(t, err)
-}
-
-func TestService__Weekdays(t *testing.T) {
-	conf := config.Check{
-		ID:   base.ID(),
-		Name: t.Name(),
+		Name: makeServiceName(t),
 		Schedule: config.ScheduleConfig{
 			Weekdays: &config.PartialDay{
 				Timezone: "America/New_York",
 				Times: []config.Times{
 					{
-						Start: "15:04",
+						Start: "12:07",
 						End:   "17:32",
 					},
 				},
@@ -62,22 +49,43 @@ func TestService__Weekdays(t *testing.T) {
 		},
 	}
 	pdc := newTestClient(t)
-	t.Cleanup(func() {
-		deleteService(t, pdc, conf)
-	})
 
-	err := pdc.Setup(conf)
+	service, err := pdc.Setup(ctx, conf)
 	require.NoError(t, err)
+
+	t.Logf("setup service %v named %v", service.ID, service.Name)
+
+	// Verify the service is in maintenance mode
+	found, err := pdc.findService(conf.Name)
+	require.NoError(t, err)
+	require.Equal(t, service.ID, found.ID)
+
+	// Check maintenance windows
+	resp, err := pdc.underlying.ListMaintenanceWindowsWithContext(ctx, pagerduty.ListMaintenanceWindowsOptions{
+		Limit:      100,
+		ServiceIDs: []string{service.ID},
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.MaintenanceWindows, 1)
+
+	mw := resp.MaintenanceWindows[0]
+
+	loc, err := time.LoadLocation(conf.Schedule.Weekdays.Timezone)
+	require.NoError(t, err)
+
+	start, err := time.Parse(time.RFC3339, mw.StartTime)
+	require.NoError(t, err)
+	require.Equal(t, "12:07", start.In(loc).Format("15:04"))
+
+	end, err := time.Parse(time.RFC3339, mw.EndTime)
+	require.NoError(t, err)
+	require.Equal(t, "17:32", end.In(loc).Format("15:04"))
+
+	t.Cleanup(func() {
+		pdc.deleteService(service)
+	})
 }
 
-func deleteService(t *testing.T, cc *client, check config.Check) {
-	t.Helper()
-
-	s := cc.ReadSwitch(check)
-	require.NotNil(t, s)
-
-	err := cc.deleteService(s.service)
-	if err != nil {
-		t.Fatal(err)
-	}
+func makeServiceName(t *testing.T) string {
+	return fmt.Sprintf("%s_%d", t.Name(), time.Now().In(time.UTC).Unix())
 }

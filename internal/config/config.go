@@ -60,7 +60,7 @@ func Load(path string) (*Config, error) {
 type Config struct {
 	Checks []Check `yaml:"checks"`
 
-	PagerDuty *PagerDuty `yaml:"pagerduty"`
+	Alert Alert `yaml:"alert"`
 }
 
 type Check struct {
@@ -70,7 +70,7 @@ type Check struct {
 
 	Schedule ScheduleConfig `yaml:"schedule"`
 
-	PagerDuty *PagerDuty `yaml:"pagerduty"`
+	Alert Alert `yaml:"alert"`
 }
 
 type ScheduleConfig struct {
@@ -98,12 +98,18 @@ func (t Times) EndTime() (time.Time, error) {
 	return time.Parse("15:04", t.End)
 }
 
+type Alert struct {
+	PagerDuty *PagerDuty `yaml:"pagerduty"`
+}
+
 type PagerDuty struct {
 	ApiKey           string `yaml:"apiKey"`
 	EscalationPolicy string `yaml:"escalationPolicy"`
 
 	// From is an email address of a valid user associated with the account making the request
-	From string `yaml:"from"`
+	// From string `yaml:"from"`
 
 	// TODO(adam): Read 'serviceID' to lookup service, rather than by name
+
+	RoutingKey string
 }
