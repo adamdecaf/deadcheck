@@ -29,3 +29,5 @@ jobs:
 
     - name: Check
       run: make check
+      env:
+        GOTEST_FLAGS: "-v"

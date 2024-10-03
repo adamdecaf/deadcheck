@@ -35,9 +35,6 @@ func (c *client) SetupTrigger(ctx context.Context, check config.Check, service *
 	if err != nil {
 		return fmt.Errorf("triggering event: %w", err)
 	}
-
-	// TODO(adam): log .DedupKey:"929cd0d5d9dc450286a5ba6d0e0f5de7" ?
-
 	if !strings.EqualFold(event.Status, "success") {
 		return fmt.Errorf("unexpected status when creating event: %#v", event)
 	}

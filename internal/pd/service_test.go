@@ -52,6 +52,9 @@ func TestService__Setup(t *testing.T) {
 
 	service, err := pdc.Setup(ctx, conf)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		pdc.deleteService(service)
+	})
 
 	t.Logf("setup service %v named %v", service.ID, service.Name)
 
@@ -80,10 +83,6 @@ func TestService__Setup(t *testing.T) {
 	end, err := time.Parse(time.RFC3339, mw.EndTime)
 	require.NoError(t, err)
 	require.Equal(t, "17:32", end.In(loc).Format("15:04"))
-
-	t.Cleanup(func() {
-		pdc.deleteService(service)
-	})
 }
 
 func makeServiceName(t *testing.T) string {

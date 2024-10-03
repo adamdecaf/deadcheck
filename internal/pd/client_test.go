@@ -44,15 +44,10 @@ func newTestClient(t *testing.T) *client {
 		t.Skip("no DEADCHECK_ESCALATION_POLICY specified, skipping test...")
 	}
 
-	routingKey := os.Getenv("DEADCHECK_ROUTING_KEY")
-	if routingKey == "" {
-		t.Skip("no DEADCHECK_ROUTING_KEY specified, skipping test...")
-	}
-
 	cc, err := NewClient(&config.PagerDuty{
 		ApiKey:           apiKey,
 		EscalationPolicy: escPolicy,
-		RoutingKey:       routingKey,
+		RoutingKey:       os.Getenv("DEADCHECK_ROUTING_KEY"),
 	})
 	require.NoError(t, err)
 
