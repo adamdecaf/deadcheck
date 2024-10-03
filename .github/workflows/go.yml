@@ -27,7 +27,14 @@ jobs:
       if: runner.os == 'Windows'
       run: choco install -y make mingw
 
-    - name: Check
+    - name: Long Tests
+      if: runner.os == 'Linux'
       run: make check
       env:
         GOTEST_FLAGS: "-v"
+
+    - name: Short Tests
+      if: runner.os != 'Linux'
+      run: make check
+      env:
+        GOTEST_FLAGS: "-short -v"
