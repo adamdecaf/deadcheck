@@ -32,6 +32,8 @@ jobs:
       run: make check
       env:
         GOTEST_FLAGS: "-v"
+        DEADCHECK_ESCALATION_POLICY: ${{ secrets.DEADCHECK_ESCALATION_POLICY }}
+        DEADCHECK_PAGERDUTY_API_KEY: ${{ secrets.DEADCHECK_PAGERDUTY_API_KEY }}
 
     - name: Short Tests
       if: runner.os != 'Linux'
