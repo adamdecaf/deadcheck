@@ -223,6 +223,8 @@ func (c *client) UpdateMaintenanceWindow(ctx context.Context, maintWindow *pager
 	maintWindow.StartTime = start.Format(maintWindowTimeFormat)
 	maintWindow.EndTime = end.Format(maintWindowTimeFormat)
 
+	// TODO(adam): need to calcualte the next start/end date for the MW
+
 	_, err := c.underlying.UpdateMaintenanceWindowWithContext(ctx, *maintWindow)
 	return err
 }

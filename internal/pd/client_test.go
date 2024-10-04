@@ -27,6 +27,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	adamUserID = "P1F29KL"
+
+	defaultEscalationPolicy = "POHSZE0"
+)
+
 func newTestClient(t *testing.T) *client {
 	t.Helper()
 
@@ -44,9 +50,15 @@ func newTestClient(t *testing.T) *client {
 		t.Skip("no DEADCHECK_ESCALATION_POLICY specified, skipping test...")
 	}
 
+	from := os.Getenv("DEADCHECK_PAGERDUTY_FROM")
+	if from == "" {
+		t.Skip("no DEADCHECK_PAGERDUTY_FROM specified, skipping test...")
+	}
+
 	cc, err := NewClient(&config.PagerDuty{
 		ApiKey:           apiKey,
 		EscalationPolicy: escPolicy,
+		From:             from,
 		RoutingKey:       os.Getenv("DEADCHECK_ROUTING_KEY"),
 	})
 	require.NoError(t, err)
@@ -55,6 +67,15 @@ func newTestClient(t *testing.T) *client {
 	require.True(t, ok)
 
 	return cl
+}
+
+func skipInCI(t *testing.T) {
+	t.Helper()
+
+	inGithubActions := os.Getenv("GITHUB_ACTIONS") != ""
+	if inGithubActions {
+		t.Skip("not running test in GITHUB_ACTIONS")
+	}
 }
 
 func TestClient(t *testing.T) {
