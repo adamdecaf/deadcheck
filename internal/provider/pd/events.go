@@ -29,7 +29,7 @@ import (
 	"github.com/PagerDuty/go-pagerduty"
 )
 
-func (c *client) SetupTrigger(ctx context.Context, check config.Check, service *pagerduty.Service) error {
+func (c *client) setupTrigger(ctx context.Context, check config.Check, service *pagerduty.Service) error {
 	// Trigger an alert
 	event, err := c.createEvent(ctx, check, service)
 	if err != nil {

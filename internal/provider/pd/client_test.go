@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
+	"github.com/moov-io/base/log"
 
 	"github.com/stretchr/testify/require"
 )
@@ -55,7 +56,8 @@ func newTestClient(t *testing.T) *client {
 		t.Skip("no DEADCHECK_PAGERDUTY_FROM specified, skipping test...")
 	}
 
-	cc, err := NewClient(&config.PagerDuty{
+	logger := log.NewTestLogger()
+	cc, err := NewClient(logger, &config.PagerDuty{
 		ApiKey:           apiKey,
 		EscalationPolicy: escPolicy,
 		From:             from,

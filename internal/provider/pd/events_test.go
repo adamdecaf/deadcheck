@@ -46,8 +46,8 @@ func TestEvents_TriggerInMaintWindow(t *testing.T) {
 				Timezone: timezone,
 				Times: []config.Times{
 					{
-						Start: now.Add(time.Minute).Format("15:04"), // needs to be in the future
-						End:   now.Add(2 * time.Hour).Format("15:04"),
+						At:        now.Add(time.Minute).Format("15:04"), // needs to be in the future
+						Tolerance: "2h",
 					},
 				},
 			},
@@ -56,7 +56,7 @@ func TestEvents_TriggerInMaintWindow(t *testing.T) {
 	pdc := newTestClient(t)
 
 	// Setup a service and maintenance window such that triggering an event shouldn't alert
-	service, err := pdc.Setup(ctx, conf)
+	service, err := pdc.setupService(ctx, conf)
 	require.NoError(t, err)
 	require.Empty(t, service.LastIncidentTimestamp) // verify no alert been triggered
 
@@ -90,7 +90,7 @@ func TestEvents_TriggerInMaintWindow(t *testing.T) {
 	}
 
 	// Trigger an event
-	err = pdc.SetupTrigger(ctx, conf, service)
+	err = pdc.setupTrigger(ctx, conf, service)
 	require.NoError(t, err)
 
 	time.Sleep(30 * time.Second)

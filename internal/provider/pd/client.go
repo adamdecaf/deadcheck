@@ -26,21 +26,25 @@ import (
 	"github.com/adamdecaf/deadcheck/internal/config"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/moov-io/base/log"
 )
 
 type Client interface {
-	Setup(ctx context.Context, check config.Check) (*pagerduty.Service, error)
-	SetupTrigger(ctx context.Context, check config.Check, service *pagerduty.Service) error
+	Setup(ctx context.Context, check config.Check) error // provider.Client interface
+
+	setupService(ctx context.Context, check config.Check) (*pagerduty.Service, error)
+	setupTrigger(ctx context.Context, check config.Check, service *pagerduty.Service) error
 
 	UpdateMaintenanceWindow(ctx context.Context, maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
 }
 
-func NewClient(conf *config.PagerDuty) (Client, error) {
+func NewClient(logger log.Logger, conf *config.PagerDuty) (Client, error) {
 	if conf == nil {
 		return nil, nil
 	}
 
 	cc := &client{
+		logger:     logger,
 		pdConfig:   *conf,
 		underlying: pagerduty.NewClient(conf.ApiKey),
 	}
@@ -52,6 +56,7 @@ func NewClient(conf *config.PagerDuty) (Client, error) {
 }
 
 type client struct {
+	logger     log.Logger
 	pdConfig   config.PagerDuty
 	underlying *pagerduty.Client
 }
@@ -67,5 +72,28 @@ func (c *client) ping() error {
 	if len(resp.Abilities) <= 0 {
 		return errors.New("pagerduty: missing abilities")
 	}
+	return nil
+}
+
+func (c *client) Setup(ctx context.Context, check config.Check) error {
+	service, err := c.setupService(ctx, check)
+	if err != nil {
+		return fmt.Errorf("setup service: %w", err)
+	}
+
+	ep, err := c.findEscalationPolicy(ctx, escalationPolicySetup{
+		id: c.pdConfig.EscalationPolicy,
+	})
+	if err != nil {
+		return fmt.Errorf("finding escalation policy: %w", err)
+	}
+
+	// Find or create our ongoing incident
+	inc, err := c.setupInitialIncident(ctx, service, ep)
+	if err != nil {
+		return fmt.Errorf("setup initial incident: %w", err)
+	}
+	c.logger.Info().Logf("using incident %s on service %v", inc.ID, service.Name)
+
 	return nil
 }

@@ -22,36 +22,35 @@ import (
 	"fmt"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
-	"github.com/adamdecaf/deadcheck/internal/pd"
+	"github.com/adamdecaf/deadcheck/internal/provider"
 
 	"github.com/moov-io/base/log"
 )
 
 type Instances struct {
-	pdClient pd.Client
-	checks   []config.Check
+	checks []config.Check
 }
 
 func Setup(ctx context.Context, logger log.Logger, conf *config.Config) (*Instances, error) {
-	pdClient, err := pd.NewClient(conf.Alert.PagerDuty)
-	if err != nil {
-		return nil, fmt.Errorf("setting up base PD client: %w", err)
-	}
-	for _, check := range conf.Checks {
-		service, err := pdClient.Setup(ctx, check)
+	for idx, check := range conf.Checks {
+		checkLogger := logger.Info().With(log.Fields{
+			"check_name": log.String(check.Name),
+		})
+
+		client, err := provider.NewClient(checkLogger, check.Alert)
+		if err != nil {
+			return nil, fmt.Errorf("setting up check[%d] provider: %w", idx, err)
+		}
+
+		err = client.Setup(ctx, check)
 		if err != nil {
 			return nil, fmt.Errorf("problem setting up check %v: %w", check.ID, err)
 		}
 
-		logger.Info().With(log.Fields{
-			"check_name":   log.String(check.Name),
-			"service_name": log.String(service.Name),
-		}).Logf("using service %v for check %v", service.ID, check.ID)
+		checkLogger.Logf("setup check %v (%v)", check.Name, check.ID)
 	}
-
 	return &Instances{
-		pdClient: pdClient,
-		checks:   conf.Checks,
+		checks: conf.Checks,
 	}, nil
 }
 

@@ -27,7 +27,7 @@ import (
 	"github.com/PagerDuty/go-pagerduty"
 )
 
-func (c *client) Setup(ctx context.Context, check config.Check) (*pagerduty.Service, error) {
+func (c *client) setupService(ctx context.Context, check config.Check) (*pagerduty.Service, error) {
 	if check.Alert.PagerDuty == nil {
 		check.Alert.PagerDuty = &c.pdConfig
 	}

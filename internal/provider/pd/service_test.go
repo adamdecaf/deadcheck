@@ -41,8 +41,8 @@ func TestService__Setup(t *testing.T) {
 				Timezone: "America/New_York",
 				Times: []config.Times{
 					{
-						Start: "12:07",
-						End:   "17:32",
+						At:        "12:07",
+						Tolerance: "5h25m",
 					},
 				},
 			},
@@ -50,7 +50,7 @@ func TestService__Setup(t *testing.T) {
 	}
 	pdc := newTestClient(t)
 
-	service, err := pdc.Setup(ctx, conf)
+	service, err := pdc.setupService(ctx, conf)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		pdc.deleteService(service)
@@ -111,7 +111,7 @@ func TestService_SnoozedIncident(t *testing.T) {
 	}
 	pdc := newTestClient(t)
 
-	service, err := pdc.Setup(ctx, conf)
+	service, err := pdc.setupService(ctx, conf)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		pdc.deleteService(service)

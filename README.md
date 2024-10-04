@@ -14,33 +14,42 @@ Download the [latest release for your architecture](https://github.com/adamdecaf
 
 ## Configuration
 ```yaml
-checks: # todo: rename to "expectedCheckins: " ???
-  - id: "<string>"
-    name: "<string>"
+checks:
+  - id: "hourly-sync"
+    name: "Upload data every hour"
     description: "<string>"
     schedule:
-      every: "<duration>"
-    pagerduty:
-      apiKey: "<string>"
-      escalationPolicy: "<string>"
+      every: "1h"
+    alert:
+      pagerduty:
+        apiKey: "<string>"
+        escalationPolicy: "<string>"
 
-  - id: "<string>"
-    name: "<string>"
+  - id: "2pm-checkin"
+    name: "Reports Finalized"
     schedule:
       weekdays:
-        timezone: "<string>"
+        timezone: "America/New_York"
         times:
-          - start: "<string>"
-            end: "<string>"
+          - at: "14:00"
+            tolerance: "5m"
+    alert:
+      pagerduty:
+        apiKey: "<string>"
+        escalationPolicy: "<string>"
 
-  - id: "<string>"
-    name: "<string>"
+  - id: "5pm-close"
+    name: "Close out for the day"
     schedule:
       bankingDays:
-        timezone: "<string>"
+        timezone: "America/New_York"
         times:
-          - start: "<string>"
-            end: "<string>"
+          - at: "17:00"
+            tolerance: "5m"
+    alert:
+      pagerduty:
+        apiKey: "<string>"
+        escalationPolicy: "<string>"
 ```
 
 

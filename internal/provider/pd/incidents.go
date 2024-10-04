@@ -3,12 +3,32 @@ package pd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/PagerDuty/go-pagerduty"
 )
 
 func (c *client) setupInitialIncident(ctx context.Context, service *pagerduty.Service, ep *pagerduty.EscalationPolicy) (*pagerduty.Incident, error) {
+	req := pagerduty.ListIncidentsOptions{
+		Statuses:   []string{"acknowledged", "triggered"},
+		ServiceIDs: []string{service.ID},
+	}
+	resp, err := c.underlying.ListIncidentsWithContext(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("listing incidents: %w", err)
+	}
+
+	for _, inc := range resp.Incidents {
+		if strings.Contains(inc.Body.Details, "check-in") {
+			return &inc, nil
+		}
+	}
+
+	return c.createInitialIncident(ctx, service, ep)
+}
+
+func (c *client) createInitialIncident(ctx context.Context, service *pagerduty.Service, ep *pagerduty.EscalationPolicy) (*pagerduty.Incident, error) {
 	req := &pagerduty.CreateIncidentOptions{
 		Title: fmt.Sprintf("Creating ongoing incdient for %s", service.Name),
 		Body: &pagerduty.APIDetails{

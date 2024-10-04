@@ -166,15 +166,16 @@ func determineStartEnd(initial time.Time, tz string, times config.Times) (time.T
 		return time.Time{}, time.Time{}, fmt.Errorf("parsing Timezone: %v", err)
 	}
 
-	start, err := times.StartTime()
+	start, err := times.AtTime()
 	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("parsing StartTime: %v", err)
+		return time.Time{}, time.Time{}, fmt.Errorf("parsing At: %v", err)
 	}
 
-	end, err := times.EndTime()
+	tolerance, err := times.GetTolerance()
 	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("parsing EndTime: %v", err)
+		return time.Time{}, time.Time{}, fmt.Errorf("parsing Tolerance: %v", err)
 	}
+	end := start.Add(tolerance)
 
 	today := initial.In(loc).Truncate(24 * time.Hour).Add(24 * time.Hour)
 

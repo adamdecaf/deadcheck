@@ -38,8 +38,8 @@ func TestMaintenanceWindow__determineStartEnd(t *testing.T) {
 	initial := time.Date(2022, 11, 9, 16, 39, 41, 0, cst) // 2022-11-09 at 16:39:41
 
 	conf := config.Times{
-		Start: "15:09",
-		End:   "17:42",
+		At:        "15:09",
+		Tolerance: "2h33m",
 	}
 	start, end, err := determineStartEnd(initial, "America/New_York", conf)
 	require.NoError(t, err)

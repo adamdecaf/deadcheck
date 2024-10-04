@@ -85,17 +85,16 @@ type PartialDay struct {
 }
 
 type Times struct {
-	Start string `yaml:"start"`
-	End   string `yaml:"end"`
+	At        string `yaml:"at"`
+	Tolerance string `yaml:"tolerance"`
 }
 
-func (t Times) StartTime() (time.Time, error) {
-	// TODO(adam): parse more formats
-	return time.Parse("15:04", t.Start)
+func (t Times) AtTime() (time.Time, error) {
+	return time.Parse("15:04", t.At) // TODO(adam): parse more times
 }
 
-func (t Times) EndTime() (time.Time, error) {
-	return time.Parse("15:04", t.End)
+func (t Times) GetTolerance() (time.Duration, error) {
+	return time.ParseDuration(t.Tolerance)
 }
 
 type Alert struct {
