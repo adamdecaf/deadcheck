@@ -32,7 +32,7 @@ import (
 var (
 	flagConfig   = flag.String("config", "", "Filepath to configuration file")
 	flagHttpAddr = flag.String("http.addr", ":8080", "HTTP listen address")
-	flagVersion  = flag.Bool("version", false, "Print the version of csvq")
+	flagVersion  = flag.Bool("version", false, "Print the version of deadcheck")
 )
 
 func main() {
