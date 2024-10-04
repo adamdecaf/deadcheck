@@ -11,7 +11,7 @@ import (
 
 func (c *client) setupInitialIncident(ctx context.Context, service *pagerduty.Service, ep *pagerduty.EscalationPolicy) (*pagerduty.Incident, error) {
 	req := pagerduty.ListIncidentsOptions{
-		Statuses:   []string{"acknowledged", "triggered"},
+		// Statuses:   []string{"acknowledged", "triggered"},
 		ServiceIDs: []string{service.ID},
 	}
 	resp, err := c.underlying.ListIncidentsWithContext(ctx, req)
@@ -20,6 +20,9 @@ func (c *client) setupInitialIncident(ctx context.Context, service *pagerduty.Se
 	}
 
 	for _, inc := range resp.Incidents {
+		if strings.Contains(inc.Title, service.Name) {
+			return &inc, nil
+		}
 		if strings.Contains(inc.Body.Details, "check-in") {
 			return &inc, nil
 		}

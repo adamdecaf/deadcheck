@@ -22,6 +22,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/adamdecaf/deadcheck/internal/api"
 	"github.com/adamdecaf/deadcheck/internal/check"
@@ -73,4 +75,17 @@ func main() {
 			server.Shutdown(ctx)
 		}
 	}()
+
+	// Listen for shutdown
+	errs := make(chan error)
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		errs <- fmt.Errorf("signal: %v", <-c)
+	}()
+
+	err = <-errs
+	if err != nil {
+		logger.Warn().Logf("shutting down: %v", err)
+	}
 }

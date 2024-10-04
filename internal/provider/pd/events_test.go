@@ -44,12 +44,10 @@ func TestEvents_TriggerInMaintWindow(t *testing.T) {
 		Schedule: config.ScheduleConfig{
 			Weekdays: &config.PartialDay{
 				Timezone: timezone,
-				Times: []config.Times{
-					{
-						At:        now.Add(time.Minute).Format("15:04"), // needs to be in the future
-						Tolerance: "2h",
-					},
+				Times: []string{
+					now.Add(time.Minute).Format("15:04"), // needs to be in the future
 				},
+				Tolerance: "2h",
 			},
 		},
 	}

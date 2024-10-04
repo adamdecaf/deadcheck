@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -54,6 +55,12 @@ func Load(path string) (*Config, error) {
 	if err := reader.UnmarshalExact(&cfg); err != nil {
 		return nil, err
 	}
+
+	// Read environment variables for config
+	if pd := ReadPagerDutyFromEnv(); pd != nil {
+		cfg.Alert.PagerDuty = pd
+	}
+
 	return &cfg, nil
 }
 
@@ -80,21 +87,25 @@ type ScheduleConfig struct {
 }
 
 type PartialDay struct {
-	Timezone string  `yaml:"timezone"`
-	Times    []Times `yaml:"times"`
+	Timezone  string   `yaml:"timezone"`
+	Times     []string `yaml:"times"`
+	Tolerance string   `yaml:"tolerance"`
 }
 
-type Times struct {
-	At        string `yaml:"at"`
-	Tolerance string `yaml:"tolerance"`
-}
+func (t PartialDay) GetTimes() ([]time.Time, error) {
+	times := make([]string, len(t.Times))
+	copy(times, t.Times)
+	slices.Sort(times)
 
-func (t Times) AtTime() (time.Time, error) {
-	return time.Parse("15:04", t.At) // TODO(adam): parse more times
-}
-
-func (t Times) GetTolerance() (time.Duration, error) {
-	return time.ParseDuration(t.Tolerance)
+	var out []time.Time
+	for _, tt := range times {
+		when, err := time.Parse("15:04", tt)
+		if err != nil {
+			return nil, fmt.Errorf("parsing %s failed: %w", tt, err)
+		}
+		out = append(out, when)
+	}
+	return out, nil
 }
 
 type Alert struct {
@@ -109,4 +120,20 @@ type PagerDuty struct {
 	From string `yaml:"from"`
 
 	RoutingKey string
+}
+
+func ReadPagerDutyFromEnv() *PagerDuty {
+	apiKey := strings.TrimSpace(os.Getenv("DEADCHECK_PAGERDUTY_API_KEY"))
+	escPolicy := os.Getenv("DEADCHECK_PAGERDUTY_ESCALATION_POLICY")
+	from := os.Getenv("DEADCHECK_PAGERDUTY_FROM")
+
+	if apiKey != "" && escPolicy != "" && from != "" {
+		return &PagerDuty{
+			ApiKey:           apiKey,
+			EscalationPolicy: escPolicy,
+			From:             from,
+			RoutingKey:       os.Getenv("DEADCHECK_PAGERDUTY_ROUTING_KEY"),
+		}
+	}
+	return nil
 }

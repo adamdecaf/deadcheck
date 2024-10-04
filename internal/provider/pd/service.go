@@ -47,11 +47,11 @@ func (c *client) setupService(ctx context.Context, check config.Check) (*pagerdu
 		return nil, errors.New("no service was setup")
 	}
 
-	// Create the maintenance window
-	err = c.setupMaintenanceWindows(check, service)
-	if err != nil {
-		return nil, fmt.Errorf("creating maintenance window: %w", err)
-	}
+	// Create the maintenance window // TODO(adam): remove?
+	// err = c.setupMaintenanceWindows(check, service)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("creating maintenance window: %w", err)
+	// }
 
 	return service, nil
 }

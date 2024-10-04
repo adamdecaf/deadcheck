@@ -19,11 +19,11 @@ package pd
 
 import (
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 	"github.com/moov-io/base/log"
+	"github.com/moov-io/base/stime"
 
 	"github.com/stretchr/testify/require"
 )
@@ -41,28 +41,14 @@ func newTestClient(t *testing.T) *client {
 		t.Skip("skipping because -short is set")
 	}
 
-	apiKey := strings.TrimSpace(os.Getenv("DEADCHECK_PAGERDUTY_API_KEY"))
-	if apiKey == "" {
-		t.Skip("no DEADCHECK_PAGERDUTY_API_KEY specified, skipping test...")
-	}
-
-	escPolicy := os.Getenv("DEADCHECK_ESCALATION_POLICY")
-	if escPolicy == "" {
-		t.Skip("no DEADCHECK_ESCALATION_POLICY specified, skipping test...")
-	}
-
-	from := os.Getenv("DEADCHECK_PAGERDUTY_FROM")
-	if from == "" {
-		t.Skip("no DEADCHECK_PAGERDUTY_FROM specified, skipping test...")
+	conf := config.ReadPagerDutyFromEnv()
+	if conf == nil {
+		t.Skip("Pagerduty config not provided, skipping...")
 	}
 
 	logger := log.NewTestLogger()
-	cc, err := NewClient(logger, &config.PagerDuty{
-		ApiKey:           apiKey,
-		EscalationPolicy: escPolicy,
-		From:             from,
-		RoutingKey:       os.Getenv("DEADCHECK_ROUTING_KEY"),
-	})
+	timeService := stime.NewSystemTimeService()
+	cc, err := NewClient(logger, conf, timeService)
 	require.NoError(t, err)
 
 	cl, ok := cc.(*client)

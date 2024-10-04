@@ -38,13 +38,9 @@ func TestService__Setup(t *testing.T) {
 		Name: makeServiceName(t),
 		Schedule: config.ScheduleConfig{
 			Weekdays: &config.PartialDay{
-				Timezone: "America/New_York",
-				Times: []config.Times{
-					{
-						At:        "12:07",
-						Tolerance: "5h25m",
-					},
-				},
+				Timezone:  "America/New_York",
+				Times:     []string{"12:07"},
+				Tolerance: "5h25m",
 			},
 		},
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/adamdecaf/deadcheck/internal/provider/pd"
 
 	"github.com/moov-io/base/log"
+	"github.com/moov-io/base/stime"
 )
 
 type Client interface {
@@ -15,9 +16,11 @@ type Client interface {
 }
 
 func NewClient(logger log.Logger, conf config.Alert) (Client, error) {
+	timeService := stime.NewSystemTimeService()
+
 	switch {
 	case conf.PagerDuty != nil:
-		return pd.NewClient(logger, conf.PagerDuty)
+		return pd.NewClient(logger, conf.PagerDuty, timeService)
 	}
 	return nil, errors.New("no provider configured")
 }

@@ -21,12 +21,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 
 	"github.com/PagerDuty/go-pagerduty"
 	"github.com/moov-io/base/log"
+	"github.com/moov-io/base/stime"
 )
 
 type Client interface {
@@ -34,19 +34,18 @@ type Client interface {
 
 	setupService(ctx context.Context, check config.Check) (*pagerduty.Service, error)
 	setupTrigger(ctx context.Context, check config.Check, service *pagerduty.Service) error
-
-	UpdateMaintenanceWindow(ctx context.Context, maintWindow *pagerduty.MaintenanceWindow, start, end time.Time) error
 }
 
-func NewClient(logger log.Logger, conf *config.PagerDuty) (Client, error) {
+func NewClient(logger log.Logger, conf *config.PagerDuty, timeService stime.TimeService) (Client, error) {
 	if conf == nil {
 		return nil, nil
 	}
 
 	cc := &client{
-		logger:     logger,
-		pdConfig:   *conf,
-		underlying: pagerduty.NewClient(conf.ApiKey),
+		logger:      logger,
+		pdConfig:    *conf,
+		timeService: timeService,
+		underlying:  pagerduty.NewClient(conf.ApiKey),
 	}
 	if err := cc.ping(); err != nil {
 		return nil, err
@@ -56,9 +55,10 @@ func NewClient(logger log.Logger, conf *config.PagerDuty) (Client, error) {
 }
 
 type client struct {
-	logger     log.Logger
-	pdConfig   config.PagerDuty
-	underlying *pagerduty.Client
+	logger      log.Logger
+	pdConfig    config.PagerDuty
+	timeService stime.TimeService
+	underlying  *pagerduty.Client
 }
 
 var _ Client = (&client{})
@@ -94,6 +94,15 @@ func (c *client) Setup(ctx context.Context, check config.Check) error {
 		return fmt.Errorf("setup initial incident: %w", err)
 	}
 	c.logger.Info().Logf("using incident %s on service %v", inc.ID, service.Name)
+
+	snooze, err := calculateSnooze(c.timeService, check)
+	if err != nil {
+		return fmt.Errorf("calculating snooze: %w", err)
+	}
+	err = c.snoozeIncident(ctx, inc, service, snooze)
+	if err != nil {
+		return fmt.Errorf("snoozing incident %s for %s failed: %w", inc.ID, snooze, err)
+	}
 
 	return nil
 }

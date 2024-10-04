@@ -18,6 +18,7 @@
 package check
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 
@@ -32,12 +33,16 @@ type Instances struct {
 }
 
 func Setup(ctx context.Context, logger log.Logger, conf *config.Config) (*Instances, error) {
+	if conf == nil {
+		return nil, nil
+	}
+
 	for idx, check := range conf.Checks {
 		checkLogger := logger.Info().With(log.Fields{
 			"check_name": log.String(check.Name),
 		})
 
-		client, err := provider.NewClient(checkLogger, check.Alert)
+		client, err := provider.NewClient(checkLogger, cmp.Or(check.Alert, conf.Alert))
 		if err != nil {
 			return nil, fmt.Errorf("setting up check[%d] provider: %w", idx, err)
 		}
@@ -49,6 +54,7 @@ func Setup(ctx context.Context, logger log.Logger, conf *config.Config) (*Instan
 
 		checkLogger.Logf("setup check %v (%v)", check.Name, check.ID)
 	}
+
 	return &Instances{
 		checks: conf.Checks,
 	}, nil
