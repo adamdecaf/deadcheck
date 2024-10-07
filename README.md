@@ -9,6 +9,8 @@
 
 deadcheck is an Operator Presence Control ("OPC") system to alert when an action has not occurred within a predefined window. This is also called a [Dead man's switch](https://en.wikipedia.org/wiki/Dead_man's_switch). deadcheck relies on setting up a schedule with a third-party service and suppressing notifications. That way a failure to check-in with deadcheck or a failure within deadcheck will cause a notification to be triggered. High quality services are chosen as integrations for deadcheck as failures to fire are a known short coming of deadcheck.
 
+deadcheck **does not rely on your infrastructure** in order to alert. deadcheck is specifically designed to **rely on third parties** (e.g. PagerDuty) for alerting.
+
 ## Install
 
 Download the [latest release for your architecture](https://github.com/adamdecaf/deadcheck/releases/latest).
