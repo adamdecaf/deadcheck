@@ -6,6 +6,7 @@ replace github.com/PagerDuty/go-pagerduty v1.8.0 => github.com/adamdecaf/go-page
 
 require (
 	github.com/PagerDuty/go-pagerduty v1.8.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/moov-io/base v0.53.0
 	github.com/spf13/viper v1.19.0

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/google/uuid"
 )
 
 func (c *client) setupInitialIncident(ctx context.Context, service *pagerduty.Service, ep *pagerduty.EscalationPolicy) (*pagerduty.Incident, error) {
@@ -37,7 +38,8 @@ func (c *client) createInitialIncident(ctx context.Context, service *pagerduty.S
 		Body: &pagerduty.APIDetails{
 			Details: "This incident will be active and used by deadcheck to alert you when check-ins do not occur as expected. Deadcheck will update this incident to reflect the current status of check-in.",
 		},
-		Urgency: "low",
+		IncidentKey: uuid.NewString(),
+		Urgency:     "low",
 		EscalationPolicy: &pagerduty.APIReference{
 			ID:   ep.ID,
 			Type: "escalation_policy",
