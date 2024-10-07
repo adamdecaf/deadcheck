@@ -3,7 +3,8 @@ checks:
   #   name: "Upload data every hour"
   #   description: "<string>"
   #   schedule:
-  #     every: "1h"
+  #     every:
+  #       interval: "1h"
   #   alert:
   #     pagerduty: # Will read from
   #       apiKey: "<string>"

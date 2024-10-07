@@ -81,9 +81,16 @@ type Check struct {
 }
 
 type ScheduleConfig struct {
-	Every       *time.Duration `yaml:"duration"`
-	Weekdays    *PartialDay    `yaml:"weekdays"`
-	BankingDays *PartialDay    `yaml:"bankingDays"`
+	Every       *EveryConfig `yaml:"every"`
+	Weekdays    *PartialDay  `yaml:"weekdays"`
+	BankingDays *PartialDay  `yaml:"bankingDays"`
+}
+
+type EveryConfig struct {
+	Interval time.Duration `yaml:"interval"`
+
+	Start string `yaml:"start"`
+	End   string `yaml:"end"`
 }
 
 type PartialDay struct {

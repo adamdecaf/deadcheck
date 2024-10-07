@@ -19,7 +19,10 @@ checks:
     name: "Upload data every hour"
     description: "<string>"
     schedule:
-      every: "1h"
+      every:
+        interval: "1h"
+        start: "14:00"
+        end: "18:00"
     alert:
       pagerduty:
         apiKey: "<string>"
