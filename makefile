@@ -1,7 +1,19 @@
+VERSION := $(shell grep -Eo '(v[0-9]+[\.][0-9]+[\.][0-9]+([-a-zA-Z0-9]*)?)' version.go)
+
+.PHONY: build
+build:
+	go build -o bin/deadcheck github.com/adamdecaf/deadcheck
+
+docker:
+	docker build --pull -t adamdecaf/deadcheck:$(VERSION) -f Dockerfile .
+
+docker-push:
+	docker push adamdecaf/deadcheck:$(VERSION)
+
 .PHONY: check
 check:
 ifeq ($(OS),Windows_NT)
-	@echo "Skipping checks on Windows, currently unsupported."
+	go test ./...
 else
 	@wget -O lint-project.sh https://raw.githubusercontent.com/moov-io/infra/master/go/lint-project.sh
 	@chmod +x ./lint-project.sh
