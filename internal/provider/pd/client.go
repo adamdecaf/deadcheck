@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
+	"github.com/adamdecaf/deadcheck/internal/provider/snooze"
 
 	"github.com/PagerDuty/go-pagerduty"
 	"github.com/moov-io/base/log"
@@ -95,7 +96,7 @@ func (c *client) Setup(ctx context.Context, check config.Check) error {
 	}
 	c.logger.Info().Logf("using incident %s on service %v", inc.ID, service.Name)
 
-	snooze, err := calculateSnooze(c.timeService, check)
+	snooze, err := snooze.Calculate(c.timeService, check.Schedule)
 	if err != nil {
 		return fmt.Errorf("calculating snooze: %w", err)
 	}
