@@ -33,6 +33,8 @@ func Server(logger log.Logger, httpAddr string, instances *check.Instances) (*ht
 		HandlerFunc(checkIn(logger, instances))
 
 	go func() {
+		logger.Info().Logf("HTTP server starting on %s", httpAddr)
+
 		err := serve.ListenAndServe()
 		if err != nil {
 			logger.Warn().Logf("http server: %v", err)
