@@ -12,8 +12,10 @@ import (
 
 func (c *client) setupInitialIncident(ctx context.Context, service *pagerduty.Service, ep *pagerduty.EscalationPolicy) (*pagerduty.Incident, error) {
 	req := pagerduty.ListIncidentsOptions{
-		// Statuses:   []string{"acknowledged", "triggered"},
+		Limit:      100, // TODO(adam): pagination
+		Statuses:   []string{"acknowledged", "triggered"},
 		ServiceIDs: []string{service.ID},
+		SortBy:     "created_at:DESC",
 	}
 	resp, err := c.underlying.ListIncidentsWithContext(ctx, req)
 	if err != nil {
