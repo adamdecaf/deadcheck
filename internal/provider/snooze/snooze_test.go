@@ -6,15 +6,13 @@ import (
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 
-	"github.com/moov-io/base/stime"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSnooze_Every(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 
-	timeService := stime.NewStaticTimeService()
-	timeService.Change(time.Date(2024, time.October, 7, 13, 22, 5, 0, loc))
+	now := time.Date(2024, time.October, 7, 13, 22, 5, 0, loc)
 
 	var schedule config.ScheduleConfig
 
@@ -25,49 +23,48 @@ func TestSnooze_Every(t *testing.T) {
 			},
 		}
 
-		snooze, err := Calculate(timeService, schedule)
+		snooze, err := Calculate(now, schedule)
 		require.NoError(t, err)
 		require.Equal(t, "30m0s", snooze.String())
-		require.Equal(t, "2024-10-07T13:52:05-04:00", timeService.Now().Add(snooze).Format(time.RFC3339))
+		require.Equal(t, "2024-10-07T13:52:05-04:00", now.Add(snooze).Format(time.RFC3339))
 	})
 
 	t.Run("30min from 13:00 to 16:00", func(t *testing.T) {
 		schedule.Every.Start = "13:00"
 		schedule.Every.End = "16:00"
 
-		snooze, err := Calculate(timeService, schedule)
+		snooze, err := Calculate(now, schedule)
 		require.NoError(t, err)
 		require.Equal(t, "7m55s", snooze.String())
-		require.Equal(t, "2024-10-07T13:30:00-04:00", timeService.Now().Add(snooze).Format(time.RFC3339))
+		require.Equal(t, "2024-10-07T13:30:00-04:00", now.Add(snooze).Format(time.RFC3339))
 	})
 
 	t.Run("30min from 14:00 to 16:00", func(t *testing.T) {
 		schedule.Every.Start = "14:00"
 		schedule.Every.End = "16:00"
 
-		snooze, err := Calculate(timeService, schedule)
+		snooze, err := Calculate(now, schedule)
 		require.NoError(t, err)
 		require.Equal(t, "37m55s", snooze.String())
-		require.Equal(t, "2024-10-07T14:00:00-04:00", timeService.Now().Add(snooze).Format(time.RFC3339))
+		require.Equal(t, "2024-10-07T14:00:00-04:00", now.Add(snooze).Format(time.RFC3339))
 	})
 
 	t.Run("30min from 12:00 to 13:00", func(t *testing.T) {
 		schedule.Every.Start = "12:00"
 		schedule.Every.End = "13:00"
 
-		snooze, err := Calculate(timeService, schedule)
+		snooze, err := Calculate(now, schedule)
 		require.NoError(t, err)
 
 		require.Equal(t, "22h37m55s", snooze.String())
-		require.Equal(t, "2024-10-08T12:00:00-04:00", timeService.Now().Add(snooze).Format(time.RFC3339))
+		require.Equal(t, "2024-10-08T12:00:00-04:00", now.Add(snooze).Format(time.RFC3339))
 	})
 }
 
 func TestSnooze_Weekdays(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 
-	timeService := stime.NewStaticTimeService()
-	timeService.Change(time.Date(2024, time.October, 7, 13, 22, 5, 0, loc))
+	now := time.Date(2024, time.October, 7, 13, 22, 5, 0, loc)
 
 	var schedule config.ScheduleConfig
 
@@ -78,11 +75,11 @@ func TestSnooze_Weekdays(t *testing.T) {
 			Tolerance: "5m",
 		}
 
-		snooze, err := Calculate(timeService, schedule)
+		snooze, err := Calculate(now, schedule)
 		require.NoError(t, err)
 
 		require.Equal(t, "42m55s", snooze.String())
-		require.Equal(t, "2024-10-07T14:05:00-04:00", timeService.Now().Add(snooze).Format(time.RFC3339))
+		require.Equal(t, "2024-10-07T14:05:00-04:00", now.Add(snooze).Format(time.RFC3339))
 	})
 
 	t.Run("15:00 today", func(t *testing.T) {
@@ -92,34 +89,33 @@ func TestSnooze_Weekdays(t *testing.T) {
 			Tolerance: "5m",
 		}
 
-		snooze, err := Calculate(timeService, schedule)
+		snooze, err := Calculate(now, schedule)
 		require.NoError(t, err)
 
 		require.Equal(t, "1h42m55s", snooze.String())
-		require.Equal(t, "2024-10-07T15:05:00-04:00", timeService.Now().Add(snooze).Format(time.RFC3339))
+		require.Equal(t, "2024-10-07T15:05:00-04:00", now.Add(snooze).Format(time.RFC3339))
 	})
 
 	t.Run("13:00 tomorrow", func(t *testing.T) {
 		schedule.Weekdays.Times = []string{"13:00", "13:10", "13:20"}
 
-		snooze, err := Calculate(timeService, schedule)
+		snooze, err := Calculate(now, schedule)
 		require.NoError(t, err)
 
 		require.Equal(t, "23h42m55s", snooze.String())
-		require.Equal(t, "2024-10-08T13:05:00-04:00", timeService.Now().Add(snooze).Format(time.RFC3339))
+		require.Equal(t, "2024-10-08T13:05:00-04:00", now.Add(snooze).Format(time.RFC3339))
 	})
 }
 
 func TestSnooze_BankingDays(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 
-	timeService := stime.NewStaticTimeService()
-	timeService.Change(time.Date(2024, time.October, 7, 13, 22, 5, 0, loc))
+	now := time.Date(2024, time.October, 7, 13, 22, 5, 0, loc)
 
 	var schedule config.ScheduleConfig
 
 	t.Run("13:00 tomorrow over weekend + holiday", func(t *testing.T) {
-		timeService.Change(time.Date(2024, time.October, 11, 13, 22, 5, 0, loc))
+		now = time.Date(2024, time.October, 11, 13, 22, 5, 0, loc)
 
 		schedule.BankingDays = &config.PartialDay{
 			Timezone:  "America/New_York",
@@ -127,10 +123,10 @@ func TestSnooze_BankingDays(t *testing.T) {
 			Tolerance: "5m",
 		}
 
-		snooze, err := Calculate(timeService, schedule)
+		snooze, err := Calculate(now, schedule)
 		require.NoError(t, err)
 
 		require.Equal(t, "95h42m55s", snooze.String())
-		require.Equal(t, "2024-10-15T13:05:00-04:00", timeService.Now().Add(snooze).Format(time.RFC3339))
+		require.Equal(t, "2024-10-15T13:05:00-04:00", now.Add(snooze).Format(time.RFC3339))
 	})
 }

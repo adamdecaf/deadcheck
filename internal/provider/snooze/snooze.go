@@ -8,12 +8,9 @@ import (
 	"github.com/adamdecaf/deadcheck/internal/config"
 
 	"github.com/moov-io/base"
-	"github.com/moov-io/base/stime"
 )
 
-func Calculate(timeService stime.TimeService, schedule config.ScheduleConfig) (time.Duration, error) {
-	now := timeService.Now()
-
+func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, error) {
 	switch {
 	case schedule.Every != nil:
 		// Relative check-ins are snoozed for their interval + tolerance from the local time at setup.
@@ -62,7 +59,7 @@ func Calculate(timeService stime.TimeService, schedule config.ScheduleConfig) (t
 		// Scheduled check-ins are snoozed until their next possible occurance.
 		var times []time.Time
 		if schedule.Weekdays != nil {
-			ts, err := schedule.Weekdays.GetTimes() // TODO(adam): check for zero, check .BankingDays as well
+			ts, err := schedule.Weekdays.GetTimes()
 			if err != nil {
 				return time.Second, fmt.Errorf("calculating snooze for weekday: %w", err)
 			}

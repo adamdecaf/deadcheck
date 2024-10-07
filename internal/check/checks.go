@@ -21,6 +21,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 	"github.com/adamdecaf/deadcheck/internal/provider"
@@ -60,7 +61,7 @@ func Setup(ctx context.Context, logger log.Logger, conf *config.Config) (*Instan
 	}, nil
 }
 
-func (xs *Instances) CheckIn(ctx context.Context, checkID string) error {
+func (xs *Instances) CheckIn(ctx context.Context, logger log.Logger, checkID string) error {
 	var found *config.Check
 	for i := range xs.checks {
 		if xs.checks[i].ID == checkID {
@@ -72,15 +73,21 @@ func (xs *Instances) CheckIn(ctx context.Context, checkID string) error {
 		return fmt.Errorf("check %s not found", checkID)
 	}
 
-	// sw := xs.pdClient.ReadSwitch(*found)
-	// if sw == nil {
-	// 	return fmt.Errorf("switch %s not found", found.ID)
-	// }
+	logger = logger.With(log.Fields{
+		"check_name": log.String(found.Name),
+	})
 
-	// TODO(adam): adjust MW start/end
+	// Grab the provider client for the check
+	client, err := provider.NewClient(logger, found.Alert)
+	if err != nil {
+		return fmt.Errorf("problem getting client for check-in: %w", err)
+	}
 
-	// Need to store/read MW from Switch
-	// err = xs.pdClient.UpdateMaintenanceWindow(sw.
+	checkInExpected, err := client.CheckIn(ctx, *found)
+	if err != nil {
+		return fmt.Errorf("check-in fialed: %w", err)
+	}
+	logger.Info().Logf("check-in complete, expected again before %v", checkInExpected.Format(time.RFC3339))
 
 	return nil
 }

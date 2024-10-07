@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 	"github.com/adamdecaf/deadcheck/internal/provider/pd"
@@ -13,6 +14,7 @@ import (
 
 type Client interface {
 	Setup(ctx context.Context, check config.Check) error
+	CheckIn(ctx context.Context, check config.Check) (time.Time, error)
 }
 
 func NewClient(logger log.Logger, conf config.Alert) (Client, error) {

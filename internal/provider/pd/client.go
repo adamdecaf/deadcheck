@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 	"github.com/adamdecaf/deadcheck/internal/provider/snooze"
@@ -31,7 +32,8 @@ import (
 )
 
 type Client interface {
-	Setup(ctx context.Context, check config.Check) error // provider.Client interface
+	Setup(ctx context.Context, check config.Check) error
+	CheckIn(ctx context.Context, check config.Check) (time.Time, error)
 
 	setupService(ctx context.Context, check config.Check) (*pagerduty.Service, error)
 	setupTrigger(ctx context.Context, check config.Check, service *pagerduty.Service) error
@@ -96,14 +98,57 @@ func (c *client) Setup(ctx context.Context, check config.Check) error {
 	}
 	c.logger.Info().Logf("using incident %s on service %v", inc.ID, service.Name)
 
-	snooze, err := snooze.Calculate(c.timeService, check.Schedule)
+	wait, err := snooze.Calculate(c.timeService.Now(), check.Schedule)
 	if err != nil {
 		return fmt.Errorf("calculating snooze: %w", err)
 	}
-	err = c.snoozeIncident(ctx, inc, service, snooze)
+
+	err = c.snoozeIncident(ctx, inc, service, wait)
 	if err != nil {
-		return fmt.Errorf("snoozing incident %s for %s failed: %w", inc.ID, snooze, err)
+		return fmt.Errorf("snoozing incident %s for %s failed: %w", inc.ID, wait, err)
 	}
 
 	return nil
+}
+
+func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, error) {
+	service, err := c.setupService(ctx, check)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("setup service: %w", err)
+	}
+
+	ep, err := c.findEscalationPolicy(ctx, escalationPolicySetup{
+		id: c.pdConfig.EscalationPolicy,
+	})
+	if err != nil {
+		return time.Time{}, fmt.Errorf("finding escalation policy: %w", err)
+	}
+
+	// Find or create our ongoing incident
+	inc, err := c.setupInitialIncident(ctx, service, ep)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("setup initial incident: %w", err)
+	}
+	c.logger.Info().Logf("using incident %s on service %v", inc.ID, service.Name)
+
+	// Easy way to calculate would be to find the remaining snooze and add that to now()
+	// then calculate the next snooze.
+	now := c.timeService.Now()
+	wait, err := snooze.Calculate(now, check.Schedule)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("calculating snooze: %w", err)
+	}
+
+	future := now.Add(wait)
+	wait, err = snooze.Calculate(future, check.Schedule)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("calculating second snooze: %w", err)
+	}
+
+	err = c.snoozeIncident(ctx, inc, service, wait)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("snoozing incident %s for %s failed: %w", inc.ID, wait, err)
+	}
+
+	return future, nil
 }
