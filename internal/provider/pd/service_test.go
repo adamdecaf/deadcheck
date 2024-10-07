@@ -49,13 +49,13 @@ func TestService__Setup(t *testing.T) {
 	service, err := pdc.setupService(ctx, conf)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		pdc.deleteService(service)
+		pdc.deleteService(ctx, service)
 	})
 
 	t.Logf("setup service %v named %v", service.ID, service.Name)
 
 	// Verify the service is in maintenance mode
-	found, err := pdc.findService(conf.Name)
+	found, err := pdc.findService(ctx, conf.Name)
 	require.NoError(t, err)
 	require.Equal(t, service.ID, found.ID)
 
@@ -81,21 +81,6 @@ func TestService__Setup(t *testing.T) {
 	require.Equal(t, "17:32", end.In(loc).Format("15:04"))
 }
 
-// TODO(adam): V2Event triggers created during a MW are ignored by PD, so how are we going to prompt it to alert right as a MW ends?
-// TODO(adam): create an incident during the MW? Can we set a future dated start time?
-
-// Can we create an incident during the MW
-// Then snooze it for the MW duration?
-
-// Do we even need MW windows?
-// SnoozeIncidentWithContext(ctx context.Context, id string, duration uint) (*Incident, error)
-//  can check .PendingActions
-//
-// Create the incident with an empty EscalationPolicy
-// Then snooze it for the MW time, and reassign to escalation policy?
-//
-// On check-in snooze again for however long
-
 func TestService_SnoozedIncident(t *testing.T) {
 	skipInCI(t) // This test creates real alerts, so don't run it in CI
 
@@ -110,7 +95,7 @@ func TestService_SnoozedIncident(t *testing.T) {
 	service, err := pdc.setupService(ctx, conf)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		pdc.deleteService(service)
+		pdc.deleteService(ctx, service)
 	})
 
 	t.Logf("setup service %v named %v", service.ID, service.Name)

@@ -33,12 +33,12 @@ func (c *client) setupService(ctx context.Context, check config.Check) (*pagerdu
 	}
 
 	// List Services, grab by name, cache for future updates
-	service, err := c.findService(check.Name)
+	service, err := c.findService(ctx, check.Name)
 	if err != nil {
 		return nil, fmt.Errorf("finding pagerduty service: %w", err)
 	}
 	if service == nil {
-		service, err = c.createService(check)
+		service, err = c.createService(ctx, check)
 		if err != nil {
 			return nil, fmt.Errorf("creating pagerduty service: %w", err)
 		}
@@ -47,20 +47,12 @@ func (c *client) setupService(ctx context.Context, check config.Check) (*pagerdu
 		return nil, errors.New("no service was setup")
 	}
 
-	// Create the maintenance window // TODO(adam): remove?
-	// err = c.setupMaintenanceWindows(check, service)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("creating maintenance window: %w", err)
-	// }
-
 	return service, nil
 }
 
-func (c *client) findService(name string) (*pagerduty.Service, error) {
-	// TODO(adam): pagination
-	ctx := context.Background()
+func (c *client) findService(ctx context.Context, name string) (*pagerduty.Service, error) {
 	resp, err := c.underlying.ListServicesWithContext(ctx, pagerduty.ListServiceOptions{
-		Limit:  100,
+		Limit:  100, // TODO(adam): pagination
 		Offset: 0,
 	})
 	if err != nil {
@@ -76,7 +68,7 @@ func (c *client) findService(name string) (*pagerduty.Service, error) {
 	return nil, nil
 }
 
-func (c *client) createService(check config.Check) (*pagerduty.Service, error) {
+func (c *client) createService(ctx context.Context, check config.Check) (*pagerduty.Service, error) {
 	svc := pagerduty.Service{
 		Name:        check.Name,
 		Description: check.Description,
@@ -87,15 +79,13 @@ func (c *client) createService(check config.Check) (*pagerduty.Service, error) {
 		svc.EscalationPolicy.Type = "escalation_policy_reference"
 	}
 
-	ctx := context.Background() // TODO(adam):
 	return c.underlying.CreateServiceWithContext(ctx, svc)
 }
 
-func (c *client) deleteService(service *pagerduty.Service) error {
+func (c *client) deleteService(ctx context.Context, service *pagerduty.Service) error {
 	if c == nil || service == nil {
 		return nil
 	}
 
-	ctx := context.Background()
 	return c.underlying.DeleteServiceWithContext(ctx, service.ID)
 }

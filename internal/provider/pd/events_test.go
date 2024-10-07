@@ -94,11 +94,11 @@ func TestEvents_TriggerInMaintWindow(t *testing.T) {
 	time.Sleep(30 * time.Second)
 
 	// Verify no incident
-	found, err := pdc.findService(conf.Name)
+	found, err := pdc.findService(ctx, conf.Name)
 	require.NoError(t, err)
 	require.Equal(t, service.ID, found.ID)
 	require.Empty(t, found.LastIncidentTimestamp)
 
 	// Keep the service around until after, so we can debug it if needed.
-	pdc.deleteService(service)
+	pdc.deleteService(ctx, service)
 }
