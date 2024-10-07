@@ -31,6 +31,7 @@ import (
 
 type Instances struct {
 	checks []config.Check
+	conf   *config.Config
 }
 
 func Setup(ctx context.Context, logger log.Logger, conf *config.Config) (*Instances, error) {
@@ -58,10 +59,15 @@ func Setup(ctx context.Context, logger log.Logger, conf *config.Config) (*Instan
 
 	return &Instances{
 		checks: conf.Checks,
+		conf:   conf,
 	}, nil
 }
 
-func (xs *Instances) CheckIn(ctx context.Context, logger log.Logger, checkID string) error {
+type CheckInResponse struct {
+	NextExpectedCheckIn time.Time
+}
+
+func (xs *Instances) CheckIn(ctx context.Context, logger log.Logger, checkID string) (*CheckInResponse, error) {
 	var found *config.Check
 	for i := range xs.checks {
 		if xs.checks[i].ID == checkID {
@@ -70,7 +76,7 @@ func (xs *Instances) CheckIn(ctx context.Context, logger log.Logger, checkID str
 		}
 	}
 	if found == nil {
-		return fmt.Errorf("check %s not found", checkID)
+		return nil, fmt.Errorf("check %s not found", checkID)
 	}
 
 	logger = logger.With(log.Fields{
@@ -78,16 +84,18 @@ func (xs *Instances) CheckIn(ctx context.Context, logger log.Logger, checkID str
 	})
 
 	// Grab the provider client for the check
-	client, err := provider.NewClient(logger, found.Alert)
+	client, err := provider.NewClient(logger, cmp.Or(found.Alert, xs.conf.Alert))
 	if err != nil {
-		return fmt.Errorf("problem getting client for check-in: %w", err)
+		return nil, fmt.Errorf("problem getting client for check-in: %w", err)
 	}
 
 	checkInExpected, err := client.CheckIn(ctx, *found)
 	if err != nil {
-		return fmt.Errorf("check-in fialed: %w", err)
+		return nil, fmt.Errorf("check-in fialed: %w", err)
 	}
 	logger.Info().Logf("check-in complete, expected again before %v", checkInExpected.Format(time.RFC3339))
 
-	return nil
+	return &CheckInResponse{
+		NextExpectedCheckIn: checkInExpected,
+	}, nil
 }
