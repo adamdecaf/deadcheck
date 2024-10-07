@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"fmt"
@@ -41,6 +42,7 @@ func main() {
 		logger.Error().LogErrorf("reading %s failed: %v", *flagConfig, err)
 		os.Exit(1)
 	}
+	conf.Server.BindAddress = cmp.Or(conf.Server.BindAddress, *flagHttpAddr)
 
 	instances, err := check.Setup(ctx, logger, conf)
 	if err != nil {
@@ -48,7 +50,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	server, err := api.Server(logger, *flagHttpAddr, instances)
+	server, err := api.Server(logger, conf.Server, instances)
 	if err != nil {
 		logger.Error().LogErrorf("running HTTP server failed: %w", err)
 		os.Exit(1)

@@ -50,7 +50,12 @@ func Load(path string) (*Config, error) {
 type Config struct {
 	Checks []Check `yaml:"checks"`
 
-	Alert Alert `yaml:"alert"`
+	Alert  Alert        `yaml:"alert"`
+	Server ServerConfig `yaml:"server"`
+}
+
+type ServerConfig struct {
+	BindAddress string `yaml:"bindAddress"`
 }
 
 type Check struct {

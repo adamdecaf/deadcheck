@@ -1,3 +1,6 @@
+server:
+  bindAddress: ":8080"
+
 checks:
   # - id: "hourly-sync"
   #   name: "Upload data every hour"

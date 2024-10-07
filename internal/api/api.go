@@ -7,15 +7,16 @@ import (
 	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/check"
+	"github.com/adamdecaf/deadcheck/internal/config"
 
 	"github.com/gorilla/mux"
 	"github.com/moov-io/base/log"
 )
 
-func Server(logger log.Logger, httpAddr string, instances *check.Instances) (*http.Server, error) {
+func Server(logger log.Logger, conf config.ServerConfig, instances *check.Instances) (*http.Server, error) {
 	router := mux.NewRouter()
 	serve := &http.Server{
-		Addr:    httpAddr,
+		Addr:    conf.BindAddress,
 		Handler: router,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify:       false,
@@ -33,7 +34,7 @@ func Server(logger log.Logger, httpAddr string, instances *check.Instances) (*ht
 		HandlerFunc(checkIn(logger, instances))
 
 	go func() {
-		logger.Info().Logf("HTTP server starting on %s", httpAddr)
+		logger.Info().Logf("HTTP server starting on %s", conf.BindAddress)
 
 		err := serve.ListenAndServe()
 		if err != nil {
