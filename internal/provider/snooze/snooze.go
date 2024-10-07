@@ -64,6 +64,14 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, er
 				return time.Second, fmt.Errorf("calculating snooze for weekday: %w", err)
 			}
 			times = ts
+
+			if schedule.Weekdays.Timezone != "" {
+				tz, err := time.LoadLocation(schedule.Weekdays.Timezone)
+				if err != nil {
+					return time.Second, fmt.Errorf("reading weekday timezone: %w", err)
+				}
+				now = now.In(tz)
+			}
 		}
 		if schedule.BankingDays != nil {
 			ts, err := schedule.BankingDays.GetTimes()
@@ -71,20 +79,28 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, er
 				return time.Second, fmt.Errorf("calculating snooze for banking day: %w", err)
 			}
 			times = ts
+
+			if schedule.BankingDays.Timezone != "" {
+				tz, err := time.LoadLocation(schedule.BankingDays.Timezone)
+				if err != nil {
+					return time.Second, fmt.Errorf("reading banking day timezone: %w", err)
+				}
+				now = now.In(tz)
+			}
 		}
 		if len(times) == 0 {
 			return time.Second, errors.New("no Times provided")
 		}
 
 		var tolerance time.Duration
-		if schedule.Weekdays != nil {
+		if schedule.Weekdays != nil && schedule.Weekdays.Tolerance != "" {
 			t, err := time.ParseDuration(schedule.Weekdays.Tolerance)
 			if err != nil {
 				return time.Second, fmt.Errorf("parsing %s as tolerance for weekday snooze: %w", schedule.Weekdays.Tolerance, err)
 			}
 			tolerance = t
 		}
-		if schedule.BankingDays != nil {
+		if schedule.BankingDays != nil && schedule.BankingDays.Tolerance != "" {
 			t, err := time.ParseDuration(schedule.BankingDays.Tolerance)
 			if err != nil {
 				return time.Second, fmt.Errorf("parsing %s as tolerance for bankign day snooze: %w", schedule.BankingDays.Tolerance, err)
