@@ -6,8 +6,9 @@ COPY . .
 RUN make build
 USER runner
 
-FROM scratch
+FROM alpine:3
 LABEL maintainer="Adam Shannon <adamkshannon@gmail.com>"
+RUN apk add --no-cache tzdata
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /go/src/github.com/adamdecaf/deadcheck/bin/deadcheck /bin/deadcheck

@@ -6,9 +6,11 @@ build:
 
 docker:
 	docker build --pull -t adamdecaf/deadcheck:$(VERSION) -f Dockerfile .
+	docker tag adamdecaf/deadcheck:$(VERSION) adamdecaf/deadcheck:latest
 
 docker-push:
 	docker push adamdecaf/deadcheck:$(VERSION)
+	docker push adamdecaf/deadcheck:latest
 
 .PHONY: check
 check:
