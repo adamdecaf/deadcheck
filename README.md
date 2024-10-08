@@ -33,6 +33,7 @@ checks:
         interval: "1h"
         start: "14:00"
         end: "18:00"
+    # Override alert for one check
     alert:
       pagerduty:
         apiKey: "<string>"
@@ -46,10 +47,6 @@ checks:
         times:
           - at: "14:00"
             tolerance: "5m"
-    alert:
-      pagerduty:
-        apiKey: "<string>"
-        escalationPolicy: "<string>"
 
   - id: "5pm-close"
     name: "Close out for the day"
@@ -59,10 +56,12 @@ checks:
         times:
           - at: "17:00"
             tolerance: "5m"
-    alert:
-      pagerduty:
-        apiKey: "<string>"
-        escalationPolicy: "<string>"
+
+# Global alert configuration
+alert:
+  pagerduty:
+    apiKey: "<string>"
+    escalationPolicy: "<string>"
 ```
 
 
