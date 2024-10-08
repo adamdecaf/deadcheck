@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deadcheck - Docker Setup</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Deadcheck - Docker Container Setup</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="http_checkin.html">HTTP Call & Go SDK</a></li>
+                <li><a href="configuration.html">Configuration</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2>Running Deadcheck in Docker</h2>
+            <p>To run Deadcheck in a Docker container, follow these steps:</p>
+            <h3>Step 1: Pull the Docker Image</h3>
+            <pre><code>docker pull adamdecaf/deadcheck:latest</code></pre>
+
+            <h3>Step 2: Run the Docker Container</h3>
+            <p>Launch Deadcheck with the following command:</p>
+            <pre><code>docker run -v ./docs/examples/:/etc/deadcheck -p 8080:8080 adamdecaf/deadcheck -config /etc/deadcheck/config.yaml </code></pre>
+
+            <h3>Step 3: Verify</h3>
+            <p>Ensure that the Deadcheck service is running:</p>
+            <pre><code>docker ps</code></pre>
+            <p>Now Deadcheck should be running on port 8080 of your Docker host.</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Adam Shannon - Deadcheck</p>
+    </footer>
+</body>
+</html>

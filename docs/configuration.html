@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deadcheck - Configuration</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Deadcheck - Configuration</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="docker.html">Docker Setup</a></li>
+                <li><a href="http_checkin.html">HTTP Call & Go SDK</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2>Configuring Deadcheck</h2>
+            <p>Deadcheck can be easily configured via a config.yaml file. Below is an example configuration:</p>
+
+            <h3>Basic Configuration</h3>
+            <pre><code>provider:
+  type: pagerduty
+  apiKey: "YOUR_PAGERDUTY_API_KEY"
+  serviceId: "YOUR_PAGERDUTY_SERVICE_ID"
+</code></pre>
+
+            <h3>Interval and Alerts</h3>
+            <p>You can configure checks to trigger alerts after a set interval:</p>
+            <pre><code>checks:
+  - id: "2pm-checkin"
+    name: "Reports Finalized"
+    schedule:
+      weekdays:
+        timezone: "America/New_York"
+        times: ["17:00"]
+        tolerance: "5m"
+</code></pre>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Adam Shannon - Deadcheck</p>
+    </footer>
+</body>
+</html>

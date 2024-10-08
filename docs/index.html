@@ -1,18 +1,38 @@
-<!doctype html>
-<html>
-  <head>
-    <title>Deadcheck</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-  </head>
-  <body>
-    <h3>Deadcheck</h3>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deadcheck Documentation</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Deadcheck Documentation</h1>
+        <nav>
+            <ul>
+                <li><a href="docker.html">Docker Setup</a></li>
+                <li><a href="http_checkin.html">HTTP Call & Go SDK</a></li>
+                <li><a href="configuration.html">Configuration</a></li>
+            </ul>
+        </nav>
+    </header>
 
-    <p>
-      Coming Soon
-    </p>
+    <main>
+        <section>
+            <h2>Welcome to Deadcheck</h2>
+            <p>Deadcheck is a dead man's switch service that works independently of its hosting infrastructure. By relying on external services for alerting, it ensures that critical tasks are handled even if the hosting server goes down.</p>
+            <p>Explore the sections below to learn how to set up Deadcheck using Docker, make HTTP check-ins, configure your alerts, and integrate with external services.</p>
+        </section>
+        <section>
+          <p>
+            <a href="mailto:contact@deadcheck.sh">contact@deadcheck.sh</a>
+          </p>
+        </section>
+    </main>
 
-    <p>
-      <a href="mailto:contact@deadcheck.sh">contact@deadcheck.sh</a>
-    </p>
-  </body>
+    <footer>
+        <p>&copy; 2024 Adam Shannon - Deadcheck</p>
+    </footer>
+</body>
 </html>

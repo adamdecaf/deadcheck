@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deadcheck - HTTP Call & Go SDK</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Deadcheck - HTTP Call & Check-In (Go SDK)</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="docker.html">Docker Setup</a></li>
+                <li><a href="configuration.html">Configuration</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2>HTTP Check-In Example</h2>
+            <p>To make a check-in with Deadcheck using an HTTP request, follow this example:</p>
+
+            <h3>Step 1: Create a Check</h3>
+            <p>Checks are created in YAML and loaded when Deadcheck starts. The following is an example of a check configuration:</p>
+            <pre><code>checks:
+  - id: "5pm-checkin"
+    name: "Reports Finalized"
+    schedule:
+      weekdays:
+        timezone: "America/New_York"
+        times: ["17:00"]
+        tolerance: "5m"
+            </code></pre>
+
+            <h3>Step 2: Check-In</h3>
+            <p>Once your check is created, you can confirm the check-in using this HTTP call:</p>
+            <pre><code>curl -X PUT http://localhost:8080/checks/5pm-checkin/check-in</code></pre>
+
+            <h2>Check-In Using Go SDK</h2>
+            <p>You can also use the Go SDK to interact with Deadcheck:</p>
+
+            <h3>Step 1: Install the SDK</h3>
+            <pre><code>go get github.com/adamdecaf/deadcheck</code></pre>
+
+            <h3>Step 2: Example Go Code</h3>
+            <pre><code>package main
+
+import (
+	"context"
+	"log"
+	"time"
+
+	"github.com/adamdecaf/deadcheck/pkg/deadcheck"
+)
+
+func main() {
+	client, err := deadcheck.NewClient(deadcheck.Config{
+		BaseAddress: "http://localhost:8080",
+	})
+	if err != nil {
+		log.Fatalf("creating deadcheck client: %v", err)
+	}
+
+	ctx := context.Background()
+	response, err := client.CheckIn(ctx, "5pm-checkin")
+	if err != nil {
+		log.Fatalf("Error checking in: %v", err)
+	} else {
+		log.Printf("Successfully checked in, next check-in expected by %v", response.NextExpectedCheckIn.Format(time.RFC3339))
+	}
+}
+            </code></pre>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Adam Shannon - Deadcheck</p>
+    </footer>
+</body>
+</html>

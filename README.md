@@ -7,9 +7,16 @@
 [![Apache 2 License](https://img.shields.io/badge/license-Apache2-blue.svg)](https://raw.githubusercontent.com/adamdecaf/deadcheck/master/LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/adamdecaf/deadcheck)](https://hub.docker.com/r/adamdecaf/deadcheck)
 
-deadcheck is an Operator Presence Control ("OPC") system to alert when an action has not occurred within a predefined window. This is also called a [Dead man's switch](https://en.wikipedia.org/wiki/Dead_man's_switch). deadcheck relies on setting up a schedule with a third-party service and suppressing notifications. That way a failure to check-in with deadcheck or a failure within deadcheck will cause a notification to be triggered. High quality services are chosen as integrations for deadcheck as failures to fire are a known short coming of deadcheck.
 
-deadcheck **does not rely on your infrastructure** in order to alert. deadcheck is specifically designed to **rely on third parties** (e.g. PagerDuty) for alerting.
+Deadcheck is a versatile [dead man's switch](https://en.wikipedia.org/wiki/Dead_man's_switch) designed to be independent of the infrastructure hosting it. The project allows users to set up checks that must be periodically "confirmed" to indicate that everything is fine. If a check isn't confirmed within the specified time, Deadcheck triggers a set of actions, such as sending alerts or executing tasks to ensure that the necessary steps are taken in the event you're no longer able to do so.
+
+Deadcheck is an automated dead man's switch that **doesn't rely on its own uptime**. Instead, it uses external services for final triggers, ensuring alerts and actions occur even if the hosting infrastructure is down. Deadcheck relies on third parties (e.g., PagerDuty) to handle alerts when a check is missed.
+
+## Features
+
+- Decoupled from Hosting Infrastructure: Deadcheck ensures that the actual execution of alerts or incidents happens independently from the infrastructure hosting it. Even if the Deadcheck server goes down, the check-in process will still trigger events using external services.
+- Configurable Check Intervals: Flexible check intervals allow you to set up switches ranging from short-term (hours) to long-term (months).
+- Provider-Agnostic Setup: Deadcheck is designed to integrate with a variety of external systems, allowing for a wide range of customization in how your dead man's switch operates.
 
 ## Install
 

@@ -30,7 +30,8 @@ checks:
   #       tolerance: "5m"
 
 # Alert can also be at the root level, but individual checks override this
-# alert:
-#   pagerduty:
-#     apiKey: "<string>"
-#     escalationPolicy: "<string>"
+alert:
+  pagerduty:
+    apiKey: "<string>"
+    escalationPolicy: "<string>"
+    from: "<email>"
