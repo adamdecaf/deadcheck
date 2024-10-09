@@ -18,6 +18,8 @@ Deadcheck is an automated dead man's switch that **doesn't rely on its own uptim
 - Configurable Check Intervals: Flexible check intervals allow you to set up switches ranging from short-term (hours) to long-term (months).
 - Provider-Agnostic Setup: Deadcheck is designed to integrate with a variety of external systems, allowing for a wide range of customization in how your dead man's switch operates.
 
+![](docs/images/timeline.png)
+
 ## Install
 
 Download the [latest release for your architecture](https://github.com/adamdecaf/deadcheck/releases/latest).
