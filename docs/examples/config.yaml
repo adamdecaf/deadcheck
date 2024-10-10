@@ -8,6 +8,8 @@ checks:
   #   schedule:
   #     every:
   #       interval: "1h"
+  #       start: "14:00"
+  #       end: "18:00"
   #   alert:
   #     pagerduty: # Will read from
   #       apiKey: "<string>"
