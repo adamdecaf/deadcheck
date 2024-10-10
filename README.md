@@ -47,8 +47,9 @@ checks:
       weekdays:
         timezone: "America/New_York"
         times:
-          - at: "14:00"
-            tolerance: "5m"
+          - "14:00"
+        # Only allow check-ins between 13:55 and 14:05
+        tolerance: "5m"
 
   - id: "5pm-close"
     name: "Close out for the day"
@@ -56,8 +57,9 @@ checks:
       bankingDays:
         timezone: "America/New_York"
         times:
-          - at: "17:00"
-            tolerance: "5m"
+          - "17:00"
+        # Only allow check-ins between 16:55 and 17:05
+        tolerance: "5m"
 
 # Global alert configuration
 alert:

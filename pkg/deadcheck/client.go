@@ -45,6 +45,16 @@ type CheckInResponse struct {
 	NextExpectedCheckIn time.Time `json:"nextExpectedCheckIn"`
 }
 
+// CheckIn updates the specified check's next expected alert time by extending it to the next scheduled interval.
+// This function is typically called after an operation successfully completes. For example, after files are uploaded.
+//
+// Example usage:
+//
+//	response, err := client.CheckIn(ctx, "2pm-checkin")
+//	if err != nil {
+//	    log.Fatalf("Failed to check in: %v", err)
+//	}
+//	log.Printf("Check-in successful: next check-in expected by %v", response.NextExpectedCheckIn)
 func (c *client) CheckIn(ctx context.Context, checkID string) (*CheckInResponse, error) {
 	address, err := c.getAddress(fmt.Sprintf("/checks/%s/check-in", checkID))
 	if err != nil {
