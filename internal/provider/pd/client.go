@@ -135,6 +135,18 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 		return time.Time{}, fmt.Errorf("calculating snooze: %w", err)
 	}
 
+	// Only allow check-ins with the tolerance specified.
+	//  e.g. If the tolerance is 5mins for a check-in expected at 4pm then only between 3:55pm and 4:05pm
+	//       would check-ins be allowed.
+	tolerance := getTolerance(check.Schedule)
+	if tolerance > time.Duration(0) {
+		if wait > tolerance {
+			err = fmt.Errorf("check-in not allowed for %v", time.Duration(wait-tolerance))
+			logger.Warn().Log(err.Error())
+			return time.Time{}, err
+		}
+	}
+
 	future := now.Add(wait)
 	wait, err = snooze.Calculate(future, check.Schedule)
 	if err != nil {
@@ -150,4 +162,17 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 	}
 
 	return future, nil
+}
+
+func getTolerance(schedule config.ScheduleConfig) time.Duration {
+	var input string
+	if schedule.Weekdays != nil {
+		input = schedule.Weekdays.Tolerance
+	}
+	if schedule.BankingDays != nil {
+		input = schedule.BankingDays.Tolerance
+	}
+
+	dur, _ := time.ParseDuration(input)
+	return dur
 }

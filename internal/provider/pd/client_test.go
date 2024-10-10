@@ -1,8 +1,10 @@
 package pd
 
 import (
+	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 	"github.com/moov-io/base/log"
@@ -52,4 +54,33 @@ func skipInCI(t *testing.T) {
 func TestClient(t *testing.T) {
 	pdc := newTestClient(t)
 	require.NoError(t, pdc.ping())
+}
+
+func TestClient_rejectedCheckIn(t *testing.T) {
+	now := time.Now()
+	ctx := context.Background()
+
+	pdc := newTestClient(t)
+	t.Cleanup(func() {
+		service, err := pdc.findService(ctx, t.Name())
+		require.NoError(t, err)
+
+		err = pdc.deleteService(ctx, service)
+		require.NoError(t, err)
+	})
+
+	nextCheckInExpected, err := pdc.CheckIn(ctx, config.Check{
+		Name: t.Name(),
+		Schedule: config.ScheduleConfig{
+			Weekdays: &config.PartialDay{
+				Times: []string{
+					// Never allow the currnet time to check-in
+					now.Add(1*time.Hour + 30*time.Minute).Format("15:04"),
+				},
+				Tolerance: "1m",
+			},
+		},
+	})
+	require.ErrorContains(t, err, "check-in not allowed for")
+	require.True(t, nextCheckInExpected.IsZero())
 }
