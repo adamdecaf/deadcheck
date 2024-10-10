@@ -10,6 +10,8 @@ import (
 	"github.com/adamdecaf/deadcheck/internal/config"
 
 	"github.com/moov-io/base"
+	"github.com/moov-io/base/log"
+	"github.com/moov-io/base/stime"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,6 +70,7 @@ func TestService_SnoozedIncident(t *testing.T) {
 	skipInCI(t) // This test creates real alerts, so don't run it in CI
 
 	ctx := context.Background()
+	logger := log.NewTestLogger()
 
 	conf := config.Check{
 		ID:   base.ID(),
@@ -95,7 +98,12 @@ func TestService_SnoozedIncident(t *testing.T) {
 
 	t.Logf("created incident %v escalating to %v", inc.ID, ep.Name)
 
-	err = pdc.snoozeIncident(ctx, inc, service, time.Hour)
+	timeService := stime.NewSystemTimeService()
+	now := timeService.Now()
+	err = pdc.snoozeIncident(ctx, logger, inc, service, now, time.Hour)
+	require.NoError(t, err)
+
+	inc, err = pdc.setupInitialIncident(ctx, service, ep)
 	require.NoError(t, err)
 
 	// Resolve incident

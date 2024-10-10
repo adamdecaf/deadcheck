@@ -87,16 +87,13 @@ func (c *client) Setup(ctx context.Context, check config.Check) error {
 	})
 	logger.Info().Logf("using incident %s on service %v", inc.ID, service.Name)
 
-	wait, err := snooze.Calculate(c.timeService.Now(), check.Schedule)
+	now := c.timeService.Now()
+	wait, err := snooze.Calculate(now, check.Schedule)
 	if err != nil {
 		return fmt.Errorf("calculating snooze: %w", err)
 	}
-	logger.Info().Logf("snoozing %s for %v", service.Name, wait)
 
-	// TODO(adam): restarts will wipe away any previous check-ins.. so we should
-	// probably store that on PD's side.
-
-	err = c.snoozeIncident(ctx, inc, service, wait)
+	err = c.snoozeIncident(ctx, logger, inc, service, now, wait)
 	if err != nil {
 		return fmt.Errorf("snoozing incident %s for %s failed: %w", inc.ID, wait, err)
 	}
@@ -147,7 +144,7 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 	future = future.Add(wait)
 	logger.Info().Logf("snoozing incident %s until %v", inc.ID, future.Format(time.RFC3339))
 
-	err = c.snoozeIncident(ctx, inc, service, future.Sub(now))
+	err = c.snoozeIncident(ctx, logger, inc, service, now, future.Sub(now))
 	if err != nil {
 		return time.Time{}, fmt.Errorf("snoozing incident %s for %s failed: %w", inc.ID, wait, err)
 	}

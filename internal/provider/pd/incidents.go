@@ -8,6 +8,7 @@ import (
 
 	"github.com/PagerDuty/go-pagerduty"
 	"github.com/google/uuid"
+	"github.com/moov-io/base/log"
 )
 
 func (c *client) setupInitialIncident(ctx context.Context, service *pagerduty.Service, ep *pagerduty.EscalationPolicy) (*pagerduty.Incident, error) {
@@ -58,7 +59,28 @@ func (c *client) createInitialIncident(ctx context.Context, service *pagerduty.S
 	return inc, nil
 }
 
-func (c *client) snoozeIncident(ctx context.Context, inc *pagerduty.Incident, service *pagerduty.Service, snooze time.Duration) error {
+func (c *client) snoozeIncident(ctx context.Context, logger log.Logger, inc *pagerduty.Incident, service *pagerduty.Service, now time.Time, snooze time.Duration) error {
+	// Only snooze an incident if we will snooze it further out into the future than it already is snoozed for.
+	// This prevents a bug on startup where we wipe away check-ins (snoozes) by snoozing for a shorter duration.
+	//
+	//   Time   Action     Snooze
+	//   5:01  check-in   +1d 5:05
+	//   5:02   restart   +0d 5:05 (3 mins from now)
+	for _, action := range inc.PendingActions {
+		if strings.EqualFold("unacknowledge", action.Type) {
+			futureUnsnooze, err := time.Parse(time.RFC3339, action.At)
+			if err != nil {
+				return fmt.Errorf("%s pending action had unexpected %s as timestamp: %w", action.Type, action.At, err)
+			}
+
+			distanceToSnooze := now.Add(snooze)
+			if distanceToSnooze.Before(futureUnsnooze) {
+				// Do nothing since we're already snoozed for longer than this snooze is asking for.
+				return nil
+			}
+		}
+	}
+
 	// Ack the incident
 	update := []pagerduty.ManageIncidentsOptions{
 		{
@@ -90,6 +112,9 @@ func (c *client) snoozeIncident(ctx context.Context, inc *pagerduty.Incident, se
 	if err != nil {
 		return fmt.Errorf("updating incidnet for after snooze: %w", err)
 	}
+
+	logger.Info().Logf("snoozed %s for %v", service.Name, snooze)
+
 	return nil
 }
 
