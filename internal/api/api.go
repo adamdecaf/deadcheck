@@ -49,6 +49,10 @@ type checkInResponse struct {
 	NextExpectedCheckIn time.Time `json:"nextExpectedCheckIn"`
 }
 
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
 func checkIn(logger log.Logger, instances *check.Instances) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		checkID := mux.Vars(r)["checkID"]
@@ -61,7 +65,14 @@ func checkIn(logger log.Logger, instances *check.Instances) http.HandlerFunc {
 		resp, err := instances.CheckIn(r.Context(), logger, checkID)
 		if err != nil {
 			logger.LogErrorf("problem during check-in: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+
+			json.NewEncoder(w).Encode(errorResponse{
+				Error: err.Error(),
+			})
+
 			return
 		}
 
