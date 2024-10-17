@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PagerDuty/go-pagerduty"
 	"github.com/adamdecaf/deadcheck/internal/config"
 
 	"github.com/moov-io/base"
@@ -43,27 +42,6 @@ func TestService__Setup(t *testing.T) {
 	found, err := pdc.findService(ctx, conf.Name)
 	require.NoError(t, err)
 	require.Equal(t, service.ID, found.ID)
-
-	// Check maintenance windows
-	resp, err := pdc.underlying.ListMaintenanceWindowsWithContext(ctx, pagerduty.ListMaintenanceWindowsOptions{
-		Limit:      100,
-		ServiceIDs: []string{service.ID},
-	})
-	require.NoError(t, err)
-	require.Len(t, resp.MaintenanceWindows, 1)
-
-	mw := resp.MaintenanceWindows[0]
-
-	loc, err := time.LoadLocation(conf.Schedule.Weekdays.Timezone)
-	require.NoError(t, err)
-
-	start, err := time.Parse(time.RFC3339, mw.StartTime)
-	require.NoError(t, err)
-	require.Equal(t, "12:07", start.In(loc).Format("15:04"))
-
-	end, err := time.Parse(time.RFC3339, mw.EndTime)
-	require.NoError(t, err)
-	require.Equal(t, "17:32", end.In(loc).Format("15:04"))
 }
 
 func TestService_SnoozedIncident(t *testing.T) {

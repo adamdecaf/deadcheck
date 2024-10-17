@@ -19,7 +19,6 @@ type Client interface {
 	CheckIn(ctx context.Context, check config.Check) (time.Time, error)
 
 	setupService(ctx context.Context, check config.Check) (*pagerduty.Service, error)
-	setupTrigger(ctx context.Context, check config.Check, service *pagerduty.Service) error
 }
 
 func NewClient(logger log.Logger, conf *config.PagerDuty, timeService stime.TimeService) (Client, error) {
