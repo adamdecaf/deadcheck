@@ -56,8 +56,11 @@ func TestClient(t *testing.T) {
 	require.NoError(t, pdc.ping())
 }
 
-func TestClient_rejectedCheckIn(t *testing.T) {
-	now := time.Now()
+func TestClient_RejectedEarlyCheckIn(t *testing.T) {
+	loc, err := time.LoadLocation("America/New_York")
+	require.NoError(t, err)
+
+	now := time.Now().In(loc)
 	ctx := context.Background()
 
 	pdc := newTestClient(t)
@@ -73,14 +76,82 @@ func TestClient_rejectedCheckIn(t *testing.T) {
 		Name: t.Name(),
 		Schedule: config.ScheduleConfig{
 			Weekdays: &config.PartialDay{
+				Timezone: "America/New_York",
 				Times: []string{
-					// Never allow the currnet time to check-in
+					// Never allow the current time to check-in
 					now.Add(1*time.Hour + 30*time.Minute).Format("15:04"),
 				},
 				Tolerance: "1m",
 			},
 		},
 	})
-	require.ErrorContains(t, err, "check-in not allowed for")
+	require.ErrorContains(t, err, "check-in not allowed for 1h29m")
 	require.True(t, nextCheckInExpected.IsZero())
+}
+
+func TestClient_RejectedLateCheckIn(t *testing.T) {
+	loc, err := time.LoadLocation("America/New_York")
+	require.NoError(t, err)
+
+	now := time.Now().In(loc)
+	ctx := context.Background()
+
+	pdc := newTestClient(t)
+	t.Cleanup(func() {
+		service, err := pdc.findService(ctx, t.Name())
+		require.NoError(t, err)
+
+		err = pdc.deleteService(ctx, service)
+		require.NoError(t, err)
+	})
+
+	nextCheckInExpected, err := pdc.CheckIn(ctx, config.Check{
+		Name: t.Name(),
+		Schedule: config.ScheduleConfig{
+			Weekdays: &config.PartialDay{
+				Timezone: "America/New_York",
+				Times: []string{
+					// Never allow the current time to check-in
+					now.Add(-1*time.Hour - 30*time.Minute).Format("15:04"),
+				},
+				Tolerance: "1m",
+			},
+		},
+	})
+	require.ErrorContains(t, err, "check-in is late by 1h29m")
+	require.True(t, nextCheckInExpected.IsZero())
+}
+
+func TestClient_CheckInJustAfter(t *testing.T) {
+	ctx := context.Background()
+
+	pdc := newTestClient(t)
+
+	loc, err := time.LoadLocation("America/New_York")
+	require.NoError(t, err)
+
+	timeService := stime.NewStaticTimeService()
+	timeService.Change(time.Date(2024, time.October, 16, 14, 0, 1, 0, loc)) // just after expected check-in
+	pdc.timeService = timeService
+
+	t.Cleanup(func() {
+		service, err := pdc.findService(ctx, t.Name())
+		require.NoError(t, err)
+
+		err = pdc.deleteService(ctx, service)
+		require.NoError(t, err)
+	})
+
+	nextCheckInExpected, err := pdc.CheckIn(ctx, config.Check{
+		Name: t.Name(),
+		Schedule: config.ScheduleConfig{
+			Weekdays: &config.PartialDay{
+				Timezone:  "America/New_York",
+				Times:     []string{"14:00"},
+				Tolerance: "5m",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, "14:05", nextCheckInExpected.Format("15:04"))
 }

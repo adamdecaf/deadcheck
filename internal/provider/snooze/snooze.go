@@ -10,7 +10,11 @@ import (
 	"github.com/moov-io/base"
 )
 
-func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, error) {
+// Calculate computes the interval of time to delay notifications for based on the current time and scheduled check-in time.
+//
+// Returned is the wall clock time (as a time.Time) of the closest scheduled time the snooze was calculated from and
+// the time.Duration of time to delay notifications for.
+func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Time, time.Duration, error) {
 	switch {
 	case schedule.Every != nil:
 		// Relative check-ins are snoozed for their interval + tolerance from the local time at setup.
@@ -20,7 +24,7 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, er
 		if schedule.Every.Start != "" {
 			start, err := time.Parse("15:04", schedule.Every.Start)
 			if err != nil {
-				return time.Second, fmt.Errorf("parsing every.start: %w", err)
+				return time.Time{}, time.Second, fmt.Errorf("parsing every.start: %w", err)
 			}
 			start = time.Date(now.Year(), now.Month(), now.Day(), start.Hour(), start.Minute(), 0, 0, now.Location())
 
@@ -28,7 +32,7 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, er
 			if schedule.Every.End != "" {
 				end, err := time.Parse("15:04", schedule.Every.End)
 				if err != nil {
-					return time.Second, fmt.Errorf("parsing every.end: %w", err)
+					return time.Time{}, time.Second, fmt.Errorf("parsing every.end: %w", err)
 				}
 				end.In(now.Location())
 
@@ -43,17 +47,17 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, er
 			if (now.Hour() > start.Hour()) || (now.Hour() == start.Hour() && now.Minute() > start.Minute()) {
 				for {
 					if now.Before(start) {
-						return start.Sub(now), nil
+						return start, start.Sub(now), nil
 					}
 					start = start.Add(schedule.Every.Interval)
 				}
 			}
 			// If we're before the start time find the distance until we start
 			if (now.Hour() < start.Hour()) || (now.Hour() == start.Hour() && now.Minute() <= start.Minute()) {
-				return start.Sub(now), nil
+				return start, start.Sub(now), nil
 			}
 		}
-		return schedule.Every.Interval, nil
+		return now, schedule.Every.Interval, nil
 
 	case schedule.Weekdays != nil, schedule.BankingDays != nil:
 		// Scheduled check-ins are snoozed until their next possible occurance.
@@ -61,14 +65,14 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, er
 		if schedule.Weekdays != nil {
 			ts, err := schedule.Weekdays.GetTimes()
 			if err != nil {
-				return time.Second, fmt.Errorf("calculating snooze for weekday: %w", err)
+				return time.Time{}, time.Second, fmt.Errorf("calculating snooze for weekday: %w", err)
 			}
 			times = ts
 
 			if schedule.Weekdays.Timezone != "" {
 				tz, err := time.LoadLocation(schedule.Weekdays.Timezone)
 				if err != nil {
-					return time.Second, fmt.Errorf("reading weekday timezone: %w", err)
+					return time.Time{}, time.Second, fmt.Errorf("reading weekday timezone: %w", err)
 				}
 				now = now.In(tz)
 			}
@@ -76,34 +80,34 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, er
 		if schedule.BankingDays != nil {
 			ts, err := schedule.BankingDays.GetTimes()
 			if err != nil {
-				return time.Second, fmt.Errorf("calculating snooze for banking day: %w", err)
+				return time.Time{}, time.Second, fmt.Errorf("calculating snooze for banking day: %w", err)
 			}
 			times = ts
 
 			if schedule.BankingDays.Timezone != "" {
 				tz, err := time.LoadLocation(schedule.BankingDays.Timezone)
 				if err != nil {
-					return time.Second, fmt.Errorf("reading banking day timezone: %w", err)
+					return time.Time{}, time.Second, fmt.Errorf("reading banking day timezone: %w", err)
 				}
 				now = now.In(tz)
 			}
 		}
 		if len(times) == 0 {
-			return time.Second, errors.New("no Times provided")
+			return time.Time{}, time.Second, errors.New("no Times provided")
 		}
 
 		var tolerance time.Duration
 		if schedule.Weekdays != nil && schedule.Weekdays.Tolerance != "" {
 			t, err := time.ParseDuration(schedule.Weekdays.Tolerance)
 			if err != nil {
-				return time.Second, fmt.Errorf("parsing %s as tolerance for weekday snooze: %w", schedule.Weekdays.Tolerance, err)
+				return time.Time{}, time.Second, fmt.Errorf("parsing %s as tolerance for weekday snooze: %w", schedule.Weekdays.Tolerance, err)
 			}
 			tolerance = t
 		}
 		if schedule.BankingDays != nil && schedule.BankingDays.Tolerance != "" {
 			t, err := time.ParseDuration(schedule.BankingDays.Tolerance)
 			if err != nil {
-				return time.Second, fmt.Errorf("parsing %s as tolerance for bankign day snooze: %w", schedule.BankingDays.Tolerance, err)
+				return time.Time{}, time.Second, fmt.Errorf("parsing %s as tolerance for bankign day snooze: %w", schedule.BankingDays.Tolerance, err)
 			}
 			tolerance = t
 		}
@@ -113,18 +117,18 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, er
 		for _, hourminute := range times {
 			if hourminute.Format("15:04") > current {
 				hhmm := time.Date(now.Year(), now.Month(), now.Day(), hourminute.Hour(), hourminute.Minute(), 0, 0, now.Location())
-				return hhmm.Sub(now) + tolerance, nil
+				return hhmm, hhmm.Sub(now) + tolerance, nil
 			}
 		}
 
 		// Find the earliest time tomorrow
-		start := times[0]
+		start := time.Date(now.Year(), now.Month(), now.Day(), times[0].Hour(), times[0].Minute(), 0, 0, now.Location())
 		future := time.Date(now.Year(), now.Month(), now.Day(), start.Hour(), start.Minute(), 0, 0, now.Location())
 
 		// Didn't find one so try again tomorrow
 		if schedule.BankingDays != nil {
 			future = base.NewTime(future).AddBankingDay(1).Time
-			return future.Sub(now) + tolerance, nil
+			return start, future.Sub(now) + tolerance, nil
 		} else {
 			future = future.AddDate(0, 0, 1)
 
@@ -135,9 +139,9 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Duration, er
 				future = future.AddDate(0, 0, 1)
 			}
 
-			return future.Sub(now) + tolerance, nil
+			return start, future.Sub(now) + tolerance, nil
 		}
 	}
 
-	return time.Second, nil
+	return time.Time{}, time.Second, nil
 }

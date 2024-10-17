@@ -87,7 +87,7 @@ func (c *client) Setup(ctx context.Context, check config.Check) error {
 	logger.Info().Logf("using incident %s on service %v", inc.ID, service.Name)
 
 	now := c.timeService.Now()
-	wait, err := snooze.Calculate(now, check.Schedule)
+	_, wait, err := snooze.Calculate(now, check.Schedule)
 	if err != nil {
 		return fmt.Errorf("calculating snooze: %w", err)
 	}
@@ -129,7 +129,8 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 	// Easy way to calculate would be to find the remaining snooze and add that to now()
 	// then calculate the next snooze.
 	now := c.timeService.Now()
-	wait, err := snooze.Calculate(now, check.Schedule)
+
+	scheduleTime, wait, err := snooze.Calculate(now, check.Schedule)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("calculating snooze: %w", err)
 	}
@@ -138,16 +139,34 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 	//  e.g. If the tolerance is 5mins for a check-in expected at 4pm then only between 3:55pm and 4:05pm
 	//       would check-ins be allowed.
 	tolerance := getTolerance(check.Schedule)
+
 	if tolerance > time.Duration(0) {
-		if wait > tolerance {
-			err = fmt.Errorf("check-in not allowed for %v", time.Duration(wait-tolerance))
-			logger.Warn().Log(err.Error())
-			return time.Time{}, err
+		// Allow checkins before the scheduled check-in time according to the tolerance
+		switch {
+		case now.Before(scheduleTime):
+			// We are early to check-in
+			diff := scheduleTime.Sub(now)
+			if diff > tolerance {
+				err = fmt.Errorf("check-in not allowed for %v", diff)
+				logger.Warn().Log(err.Error())
+				return time.Time{}, err
+			}
+		case now.Equal(scheduleTime):
+			// do nothing, we're on time
+
+		case scheduleTime.Before(now):
+			// We are late to check-in
+			diff := now.Sub(scheduleTime)
+			if diff > tolerance {
+				err = fmt.Errorf("check-in is late by %v", diff-tolerance)
+				logger.Warn().Log(err.Error())
+				return time.Time{}, err
+			}
 		}
 	}
 
 	future := now.Add(wait)
-	wait, err = snooze.Calculate(future, check.Schedule)
+	_, wait, err = snooze.Calculate(future, check.Schedule)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("calculating second snooze: %w", err)
 	}
