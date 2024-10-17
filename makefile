@@ -26,8 +26,7 @@ docker-push:
 docker-manifest:
 	docker manifest create \
 		adamdecaf/deadcheck:${VERSION} \
-		adamdecaf/deadcheck:${VERSION}.x86_64 \
-		adamdecaf/deadcheck:${VERSION}.arm64
+		adamdecaf/deadcheck:${VERSION}.x86_64
 	docker manifest push adamdecaf/deadcheck:${VERSION}
 
 .PHONY: check
