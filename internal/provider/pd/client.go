@@ -147,7 +147,7 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 			// We are early to check-in
 			diff := scheduleTime.Sub(now)
 			if diff > tolerance {
-				err = fmt.Errorf("check-in not allowed for %v", diff)
+				err = fmt.Errorf("%v check-in not allowed for %v", scheduleTime.Format("15:04"), diff)
 				logger.Warn().Log(err.Error())
 				return time.Time{}, err
 			}
@@ -158,7 +158,7 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 			// We are late to check-in
 			diff := now.Sub(scheduleTime)
 			if diff > tolerance {
-				err = fmt.Errorf("check-in is late by %v", diff-tolerance)
+				err = fmt.Errorf("%v check-in is late by %v", scheduleTime.Format("15:04"), diff-tolerance)
 				logger.Warn().Log(err.Error())
 				return time.Time{}, err
 			}
