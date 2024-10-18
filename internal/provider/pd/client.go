@@ -165,13 +165,13 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 		}
 	}
 
-	future := now.Add(wait)
-	_, wait, err = snooze.Calculate(future, check.Schedule)
+	// future := now.Add(wait)
+	_, wait, err = snooze.Calculate(scheduleTime, check.Schedule)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("calculating second snooze: %w", err)
 	}
 
-	future = future.Add(wait)
+	future := scheduleTime.Add(wait)
 	logger.Info().Logf("snoozing incident %s until %v", inc.ID, future.Format(time.RFC3339))
 
 	err = c.snoozeIncident(ctx, logger, inc, service, now, future.Sub(now))

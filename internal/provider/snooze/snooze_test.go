@@ -107,13 +107,15 @@ func TestSnooze_Weekdays(t *testing.T) {
 	})
 
 	t.Run("09:00 tomorrow", func(t *testing.T) {
+		now = now.Add(5 * time.Minute)
+
 		schedule.Weekdays.Times = []string{"09:00", "09:10", "09:20"}
 
 		clockTime, snooze, err := Calculate(now, schedule)
 		require.NoError(t, err)
 
 		require.Equal(t, "2024-10-07T09:00:00-04:00", clockTime.Format(time.RFC3339))
-		require.Equal(t, "23h42m55s", snooze.String())
+		require.Equal(t, "23h37m55s", snooze.String())
 		require.Equal(t, "2024-10-08T09:05:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
 	})
 }
@@ -123,7 +125,7 @@ func TestSnooze_BankingDays(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("13:00 tomorrow over weekend + holiday", func(t *testing.T) {
-		now := time.Date(2024, time.October, 11, 13, 22, 5, 0, time.UTC)
+		now := time.Date(2024, time.October, 11, 13, 26, 5, 0, time.UTC)
 
 		var schedule config.ScheduleConfig
 		schedule.BankingDays = &config.PartialDay{
@@ -136,22 +138,22 @@ func TestSnooze_BankingDays(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, "2024-10-11T09:00:00-04:00", clockTime.Format(time.RFC3339))
-		require.Equal(t, "95h42m55s", snooze.String())
+		require.Equal(t, "95h38m55s", snooze.String())
 		require.Equal(t, "2024-10-15T09:05:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
 	})
 }
 
-func TestSnooze_JustAfter(t *testing.T) {
+func TestSnooze_Close(t *testing.T) {
 	nyc, err := time.LoadLocation("America/New_York")
 	require.NoError(t, err)
 
-	t.Run("1s after 14:00 expected check-in", func(t *testing.T) {
-		now := time.Date(2024, time.October, 17, 14, 0, 1, 0, nyc)
+	t.Run("1s before 14:00 expected check-in", func(t *testing.T) {
+		now := time.Date(2024, time.October, 17, 13, 59, 59, 0, nyc)
 
 		var schedule config.ScheduleConfig
 		schedule.BankingDays = &config.PartialDay{
 			Timezone:  "America/New_York",
-			Times:     []string{"14:00"},
+			Times:     []string{"13:30", "14:00", "14:30"},
 			Tolerance: "5m",
 		}
 
@@ -159,7 +161,61 @@ func TestSnooze_JustAfter(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, "2024-10-17T14:00:00-04:00", clockTime.Format(time.RFC3339))
-		require.Equal(t, "24h4m59s", snooze.String())
-		require.Equal(t, "2024-10-18T14:05:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
+		require.Equal(t, "35m1s", snooze.String())
+		require.Equal(t, "2024-10-17T14:35:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
+	})
+
+	t.Run("1s after 14:00 expected check-in", func(t *testing.T) {
+		now := time.Date(2024, time.October, 17, 14, 0, 1, 0, nyc)
+
+		var schedule config.ScheduleConfig
+		schedule.BankingDays = &config.PartialDay{
+			Timezone:  "America/New_York",
+			Times:     []string{"13:30", "14:00", "14:30"},
+			Tolerance: "5m",
+		}
+
+		clockTime, snooze, err := Calculate(now, schedule)
+		require.NoError(t, err)
+
+		require.Equal(t, "2024-10-17T14:00:00-04:00", clockTime.Format(time.RFC3339))
+		require.Equal(t, "34m59s", snooze.String())
+		require.Equal(t, "2024-10-17T14:35:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
+	})
+
+	t.Run("1m before 14:00 expected check-in", func(t *testing.T) {
+		now := time.Date(2024, time.October, 17, 13, 59, 0, 0, nyc)
+
+		var schedule config.ScheduleConfig
+		schedule.BankingDays = &config.PartialDay{
+			Timezone:  "America/New_York",
+			Times:     []string{"13:30", "14:00", "14:30"},
+			Tolerance: "5m",
+		}
+
+		clockTime, snooze, err := Calculate(now, schedule)
+		require.NoError(t, err)
+
+		require.Equal(t, "2024-10-17T14:00:00-04:00", clockTime.Format(time.RFC3339))
+		require.Equal(t, "36m0s", snooze.String())
+		require.Equal(t, "2024-10-17T14:35:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
+	})
+
+	t.Run("1m after 14:00 expected check-in", func(t *testing.T) {
+		now := time.Date(2024, time.October, 17, 14, 1, 0, 0, nyc)
+
+		var schedule config.ScheduleConfig
+		schedule.BankingDays = &config.PartialDay{
+			Timezone:  "America/New_York",
+			Times:     []string{"13:30", "14:00", "14:30"},
+			Tolerance: "5m",
+		}
+
+		clockTime, snooze, err := Calculate(now, schedule)
+		require.NoError(t, err)
+
+		require.Equal(t, "2024-10-17T14:00:00-04:00", clockTime.Format(time.RFC3339))
+		require.Equal(t, "34m0s", snooze.String())
+		require.Equal(t, "2024-10-17T14:35:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
 	})
 }

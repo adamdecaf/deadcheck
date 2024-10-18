@@ -112,12 +112,38 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Time, time.D
 			tolerance = t
 		}
 
-		// Find the next future hour:minute
+		// Find the hour:minute (within the tolerance) scheduled check-in which contains the current time.
 		current := now.Format("15:04")
-		for _, hourminute := range times {
-			if hourminute.Format("15:04") > current {
-				hhmm := time.Date(now.Year(), now.Month(), now.Day(), hourminute.Hour(), hourminute.Minute(), 0, 0, now.Location())
-				return hhmm, hhmm.Sub(now) + tolerance, nil
+
+		for idx, hourminute := range times {
+			low := hourminute.Add(-1 * tolerance).Format("15:04")
+			high := hourminute.Add(tolerance).Format("15:04")
+
+			scheduledCheckIn := time.Date(now.Year(), now.Month(), now.Day(), hourminute.Hour(), hourminute.Minute(), 0, 0, now.Location())
+
+			// If we're before all scheduled check-ins today
+			if idx == 0 && current < low {
+				return scheduledCheckIn, scheduledCheckIn.Sub(now) + tolerance, nil
+			}
+
+			// The current time must be within our scheduled time +/- the tolerance
+			if low <= current && high >= current {
+				// Based on the scheduledCheckIn calculate how long to sleep for
+				var nextCheckIn time.Time
+				if len(times) > idx+1 {
+					nextCheckIn = times[idx+1] // the next time later today
+				} else {
+					nextCheckIn = times[0] // tomorrow's first time
+					nextCheckIn = nextCheckIn.AddDate(0, 0, 1)
+				}
+
+				next := time.Date(now.Year(), now.Month(), now.Day(), nextCheckIn.Hour(), nextCheckIn.Minute(), 0, 0, now.Location())
+
+				if nextCheckIn.Day() > 1 { // zero value of time.Time is Jan 1 1970
+					next = next.AddDate(0, 0, nextCheckIn.Day()-1)
+				}
+
+				return scheduledCheckIn, next.Sub(now) + tolerance, nil
 			}
 		}
 
