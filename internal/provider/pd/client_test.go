@@ -114,8 +114,6 @@ func TestClient_RejectedLateCheckIn(t *testing.T) {
 				Times: []string{
 					// Never allow the current time to check-in
 					now.Add(-1*time.Hour - 30*time.Minute).Format("15:04"),
-					// Add a future time that's too far in the future
-					now.Add(2*time.Hour + 30*time.Minute).Format("15:04"),
 				},
 				Tolerance: "5m",
 			},
