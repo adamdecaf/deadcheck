@@ -1,6 +1,7 @@
 package pd
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"strings"
@@ -42,7 +43,7 @@ func (c *client) createInitialIncident(ctx context.Context, service *pagerduty.S
 			Details: "This incident will be active and used by deadcheck to alert you when check-ins do not occur as expected. Deadcheck will update this incident to reflect the current status of check-in.",
 		},
 		IncidentKey: uuid.NewString(),
-		Urgency:     "low",
+		Urgency:     c.urgency(),
 		EscalationPolicy: &pagerduty.APIReference{
 			ID:   ep.ID,
 			Type: "escalation_policy",
@@ -105,7 +106,7 @@ func (c *client) snoozeIncident(ctx context.Context, logger log.Logger, inc *pag
 		{
 			ID:      inc.ID,
 			Title:   fmt.Sprintf("%s did not check-in, expected check-in at %v", service.Name, expectedCheckin),
-			Urgency: "high",
+			Urgency: c.urgency(),
 		},
 	}
 	_, err = c.underlying.ManageIncidentsWithContext(ctx, c.pdConfig.From, update)
@@ -130,4 +131,8 @@ func (c *client) resolveIncident(ctx context.Context, inc *pagerduty.Incident) e
 		return fmt.Errorf("resolving incident: %w", err)
 	}
 	return nil
+}
+
+func (c *client) urgency() string {
+	return cmp.Or(c.pdConfig.Urgency, "high")
 }

@@ -114,7 +114,9 @@ type PagerDuty struct {
 	// From is an email address of a valid user associated with the account making the request
 	From string `yaml:"from"`
 
-	RoutingKey string
+	RoutingKey string `yaml:"routingKey"`
+
+	Urgency string `yaml:"urgency"`
 }
 
 func ReadPagerDutyFromEnv() *PagerDuty {
