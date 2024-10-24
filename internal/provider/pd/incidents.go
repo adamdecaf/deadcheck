@@ -91,7 +91,10 @@ func (c *client) snoozeIncident(ctx context.Context, logger log.Logger, inc *pag
 	}
 	_, err := c.underlying.ManageIncidentsWithContext(ctx, c.pdConfig.From, update)
 	if err != nil {
-		return fmt.Errorf("incident acknowledged: %w", err)
+		// Ignore this error if the incident is already acknowledged
+		if !strings.Contains(strings.ToLower(err.Error()), "incident already acknowledged") {
+			return fmt.Errorf("incident acknowledged: %w", err)
+		}
 	}
 
 	// Snooze the incident
