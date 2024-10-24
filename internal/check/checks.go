@@ -27,7 +27,7 @@ func Setup(ctx context.Context, logger log.Logger, conf *config.Config) (*Instan
 			"check_name": log.String(check.Name),
 		})
 
-		client, err := provider.NewClient(checkLogger, cmp.Or(check.Alert, conf.Alert))
+		client, err := provider.NewClient(checkLogger, mergeAlertConfigs(check.Alert, conf.Alert))
 		if err != nil {
 			return nil, fmt.Errorf("setting up check[%d] provider: %w", idx, err)
 		}
@@ -67,7 +67,7 @@ func (xs *Instances) CheckIn(ctx context.Context, logger log.Logger, checkID str
 	})
 
 	// Grab the provider client for the check
-	client, err := provider.NewClient(logger, cmp.Or(found.Alert, xs.conf.Alert))
+	client, err := provider.NewClient(logger, mergeAlertConfigs(found.Alert, xs.conf.Alert))
 	if err != nil {
 		return nil, fmt.Errorf("problem getting client for check-in: %w", err)
 	}
@@ -81,4 +81,24 @@ func (xs *Instances) CheckIn(ctx context.Context, logger log.Logger, checkID str
 	return &CheckInResponse{
 		NextExpectedCheckIn: checkInExpected,
 	}, nil
+}
+
+func mergeAlertConfigs(local, global config.Alert) config.Alert {
+	var out config.Alert
+
+	// PagerDuty config merging
+	out.PagerDuty = cmp.Or(local.PagerDuty, global.PagerDuty)
+
+	if local.PagerDuty != nil && global.PagerDuty != nil {
+		// Prefer the local config over the global config
+		out.PagerDuty = &config.PagerDuty{
+			ApiKey:           cmp.Or(local.PagerDuty.ApiKey, global.PagerDuty.ApiKey),
+			EscalationPolicy: cmp.Or(local.PagerDuty.EscalationPolicy, global.PagerDuty.EscalationPolicy),
+			From:             cmp.Or(local.PagerDuty.From, global.PagerDuty.From),
+			RoutingKey:       cmp.Or(local.PagerDuty.RoutingKey, global.PagerDuty.RoutingKey),
+			Urgency:          cmp.Or(local.PagerDuty.Urgency, global.PagerDuty.Urgency),
+		}
+	}
+
+	return out
 }
