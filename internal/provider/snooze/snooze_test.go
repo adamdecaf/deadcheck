@@ -141,6 +141,42 @@ func TestSnooze_BankingDays(t *testing.T) {
 		require.Equal(t, "95h38m55s", snooze.String())
 		require.Equal(t, "2024-10-15T09:05:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
 	})
+
+	t.Run("last checkin before weekend", func(t *testing.T) {
+		now := time.Date(2024, time.October, 25, 17, 30, 5, 0, nyc)
+
+		var schedule config.ScheduleConfig
+		schedule.BankingDays = &config.PartialDay{
+			Timezone:  "America/New_York",
+			Times:     []string{"10:00", "14:15", "16:15", "17:30"},
+			Tolerance: "5m",
+		}
+
+		clockTime, snooze, err := Calculate(now, schedule)
+		require.NoError(t, err)
+
+		require.Equal(t, "2024-10-25T17:30:00-04:00", clockTime.Format(time.RFC3339))
+		require.Equal(t, "64h34m55s", snooze.String())
+		require.Equal(t, "2024-10-28T10:05:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
+	})
+
+	t.Run("weekend startup, early to check-in", func(t *testing.T) {
+		now := time.Date(2024, time.October, 26, 13, 22, 5, 0, time.UTC)
+
+		var schedule config.ScheduleConfig
+		schedule.BankingDays = &config.PartialDay{
+			Timezone:  "America/New_York",
+			Times:     []string{"14:00", "15:00", "17:00"},
+			Tolerance: "5m",
+		}
+
+		clockTime, snooze, err := Calculate(now, schedule)
+		require.NoError(t, err)
+
+		require.Equal(t, "2024-10-26T14:00:00-04:00", clockTime.Format(time.RFC3339))
+		require.Equal(t, "52h42m55s", snooze.String())
+		require.Equal(t, "2024-10-28T14:05:00-04:00", now.In(nyc).Add(snooze).Format(time.RFC3339))
+	})
 }
 
 func TestSnooze_Close(t *testing.T) {

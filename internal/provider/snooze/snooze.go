@@ -136,12 +136,22 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Time, time.D
 					next = next.AddDate(0, 0, nextCheckIn.Day()-1)
 				}
 
-				return scheduledCheckIn, next.Sub(now) + tolerance, nil
+				// Check if the time after snoozing will be a banking day
+				snooze := next.Sub(now) + tolerance
+				if schedule.BankingDays != nil {
+					snooze = snoozeUntilNextBankingDay(scheduledCheckIn, snooze)
+				}
+				return scheduledCheckIn, snooze, nil
 			}
 
-			// We've reached the next possible check-in (the low is greater than now)
+			// We couldn't find an interval to check-in, so return the time until the first available check-in.
+			// This is useful for the initial snooze on startup
 			if now.Before(low) {
-				return scheduledCheckIn, high.Sub(now), nil
+				snooze := high.Sub(now)
+				if schedule.BankingDays != nil {
+					snooze = snoozeUntilNextBankingDay(scheduledCheckIn, snooze)
+				}
+				return scheduledCheckIn, snooze, nil
 			}
 		}
 
@@ -168,4 +178,13 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Time, time.D
 	}
 
 	return time.Time{}, time.Second, nil
+}
+
+func snoozeUntilNextBankingDay(scheduledCheckIn time.Time, snooze time.Duration) time.Duration {
+	bt := base.NewTime(scheduledCheckIn.Add(snooze))
+	if !bt.IsBankingDay() {
+		bt = bt.AddBankingDay(1)
+		snooze = bt.Time.Sub(scheduledCheckIn)
+	}
+	return snooze
 }
