@@ -100,5 +100,16 @@ func mergeAlertConfigs(local, global config.Alert) config.Alert {
 		}
 	}
 
+	// Slack config merging
+	out.Slack = cmp.Or(local.Slack, global.Slack)
+
+	if local.Slack != nil && global.Slack != nil {
+		// Prefer the local config over the global config
+		out.Slack = &config.Slack{
+			ApiToken:  cmp.Or(local.Slack.ApiToken, global.Slack.ApiToken),
+			ChannelID: cmp.Or(local.Slack.ChannelID, global.Slack.ChannelID),
+		}
+	}
+
 	return out
 }

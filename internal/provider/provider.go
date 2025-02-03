@@ -7,6 +7,7 @@ import (
 
 	"github.com/adamdecaf/deadcheck/internal/config"
 	"github.com/adamdecaf/deadcheck/internal/provider/pd"
+	"github.com/adamdecaf/deadcheck/internal/provider/slack"
 
 	"github.com/moov-io/base/log"
 	"github.com/moov-io/base/stime"
@@ -23,6 +24,8 @@ func NewClient(logger log.Logger, conf config.Alert) (Client, error) {
 	switch {
 	case conf.PagerDuty != nil:
 		return pd.NewClient(logger, conf.PagerDuty, timeService)
+	case conf.Slack != nil:
+		return slack.NewClient(logger, conf.Slack, timeService)
 	}
 	return nil, errors.New("no provider configured")
 }

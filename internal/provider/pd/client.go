@@ -138,31 +138,9 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 	// Only allow check-ins with the tolerance specified.
 	//  e.g. If the tolerance is 5mins for a check-in expected at 4pm then only between 3:55pm and 4:05pm
 	//       would check-ins be allowed.
-	tolerance := getTolerance(check.Schedule)
-
-	if tolerance > time.Duration(0) {
-		// Allow checkins before the scheduled check-in time according to the tolerance
-		switch {
-		case now.Before(scheduleTime):
-			// We are early to check-in
-			diff := scheduleTime.Sub(now)
-			if diff > tolerance {
-				err = fmt.Errorf("%v check-in not allowed for %v", scheduleTime.Format("15:04"), diff)
-				logger.Warn().Log(err.Error())
-				return time.Time{}, err
-			}
-		case now.Equal(scheduleTime):
-			// do nothing, we're on time
-
-		case scheduleTime.Before(now):
-			// We are late to check-in
-			diff := now.Sub(scheduleTime)
-			if diff > tolerance {
-				err = fmt.Errorf("%v check-in is late by %v", scheduleTime.Format("15:04"), diff-tolerance)
-				logger.Warn().Log(err.Error())
-				return time.Time{}, err
-			}
-		}
+	err = config.WithinTolerance(now, scheduleTime, check.Schedule)
+	if err != nil {
+		return time.Time{}, logger.Error().LogError(err).Err()
 	}
 
 	// future := now.Add(wait)
@@ -180,17 +158,4 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 	}
 
 	return future, nil
-}
-
-func getTolerance(schedule config.ScheduleConfig) time.Duration {
-	var input string
-	if schedule.Weekdays != nil {
-		input = schedule.Weekdays.Tolerance
-	}
-	if schedule.BankingDays != nil {
-		input = schedule.BankingDays.Tolerance
-	}
-
-	dur, _ := time.ParseDuration(input)
-	return dur
 }

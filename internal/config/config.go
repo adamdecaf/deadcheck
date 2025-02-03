@@ -43,6 +43,9 @@ func Load(path string) (*Config, error) {
 	if pd := ReadPagerDutyFromEnv(); pd != nil {
 		cfg.Alert.PagerDuty = pd
 	}
+	if sk := ReadSlackFromEnv(); sk != nil {
+		cfg.Alert.Slack = sk
+	}
 
 	return &cfg, nil
 }
@@ -105,6 +108,7 @@ func (t PartialDay) GetTimes() ([]time.Time, error) {
 
 type Alert struct {
 	PagerDuty *PagerDuty `yaml:"pagerduty"`
+	Slack     *Slack
 }
 
 type PagerDuty struct {
@@ -132,5 +136,24 @@ func ReadPagerDutyFromEnv() *PagerDuty {
 			RoutingKey:       os.Getenv("DEADCHECK_PAGERDUTY_ROUTING_KEY"),
 		}
 	}
+	return nil
+}
+
+type Slack struct {
+	ApiToken  string
+	ChannelID string
+}
+
+func ReadSlackFromEnv() *Slack {
+	apiToken := os.Getenv("DEADCHECK_SLACK_API_TOKEN")
+	channelID := os.Getenv("DEADCHECK_SLACK_CHANNEL_ID")
+
+	if apiToken != "" && channelID != "" {
+		return &Slack{
+			ApiToken:  apiToken,
+			ChannelID: channelID,
+		}
+	}
+
 	return nil
 }
