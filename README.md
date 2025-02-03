@@ -63,9 +63,14 @@ checks:
 
 # Global alert configuration
 alert:
-  pagerduty:
-    apiKey: "<string>"
-    escalationPolicy: "<string>"
+  # pagerduty:
+  #   apiKey: "<string>"
+  #   escalationPolicy: "<string>"
+  #   from: "<email>"
+
+  # slack:
+  #   apiToken: "<string>"
+  #   channelID: "<string>"
 ```
 
 
