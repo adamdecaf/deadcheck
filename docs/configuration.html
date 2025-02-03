@@ -23,13 +23,6 @@
             <h2>Configuring Deadcheck</h2>
             <p>Deadcheck can be easily configured via a config.yaml file. Below is an example configuration:</p>
 
-            <h3>Basic Configuration</h3>
-            <pre><code>provider:
-  type: pagerduty
-  apiKey: "YOUR_PAGERDUTY_API_KEY"
-  serviceId: "YOUR_PAGERDUTY_SERVICE_ID"
-</code></pre>
-
             <h3>Interval and Alerts</h3>
             <p>You can configure checks to trigger alerts after a set interval:</p>
             <pre><code>checks:
@@ -42,6 +35,17 @@
         # Only allow check-ins between 13:55 and 14:05
         tolerance: "5m"
 </code></pre>
+
+            <h3>Basic Configuration</h3>
+            <pre><code>alert:
+  pagerduty:
+    apiKey: "<string>"
+    escalationPolicy: "<string>"
+  slack:
+    apiToken: "<string>"
+    channelID: "<string>"
+</code></pre>
+
         </section>
     </main>
 

@@ -83,6 +83,7 @@ Successful response, or failure in the response.
 ## Integrations
 
 - PagerDuty: A service is used and incident created but snoozed preventing notifications. Each successful check-in pushes the snooze out into the future until the next expected check-in.
+- Slack: Schedule messages in the future which notify on failed check-ins.
 
 ## Supported and tested platforms
 

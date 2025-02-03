@@ -38,3 +38,6 @@ alert:
     apiKey: "<string>"
     escalationPolicy: "<string>"
     from: "<email>"
+  # slack:
+  #   apiToken: "<string>"
+  #   channelID: "<string>"
