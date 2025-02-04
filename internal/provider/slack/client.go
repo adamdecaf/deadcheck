@@ -70,7 +70,13 @@ func (c *client) setupScheduledMessage(ctx context.Context, check config.Check) 
 		return fmt.Errorf("finding scheduled message: %w", err)
 	}
 	if msg == nil {
-		_, err = c.createSnoozedMessage(ctx, logger, check)
+		now := c.timeService.Now()
+		_, wait, err := snooze.Calculate(now, check.Schedule)
+		if err != nil {
+			return fmt.Errorf("calculating snooze: %w", err)
+		}
+
+		_, err = c.createSnoozedMessage(ctx, logger, check, now, wait)
 		if err != nil {
 			return fmt.Errorf("setting up snoozed message: %w", err)
 		}
@@ -98,9 +104,8 @@ func (c *client) findScheduledMessage(ctx context.Context, check config.Check) (
 	return nil, nil
 }
 
-func (c *client) createSnoozedMessage(ctx context.Context, logger log.Logger, check config.Check) (time.Time, error) {
-	now := c.timeService.Now()
-	scheduleTime, wait, err := snooze.Calculate(now, check.Schedule)
+func (c *client) createSnoozedMessage(ctx context.Context, logger log.Logger, check config.Check, now time.Time, wait time.Duration) (time.Time, error) {
+	scheduleTime, _, err := snooze.Calculate(now, check.Schedule)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("calculating snooze: %w", err)
 	}
@@ -162,8 +167,17 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 		}
 	}
 
+	// Find the future check-in time
+	_, wait, err := snooze.Calculate(scheduleTime, check.Schedule)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("calculating second snooze: %w", err)
+	}
+
+	future := scheduleTime.Add(wait)
+	logger.Info().Logf("snoozing %s scheduled message until %v", check.ID, future.Format(time.RFC3339))
+
 	// Create a new scheduled message
-	nextCheckin, err := c.createSnoozedMessage(ctx, logger, check)
+	nextCheckin, err := c.createSnoozedMessage(ctx, logger, check, now, future.Sub(now))
 	if err != nil {
 		return time.Time{}, fmt.Errorf("problem creating snoozed message: %w", err)
 	}
