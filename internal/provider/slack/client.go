@@ -5,8 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adamdecaf/deadcheck/internal/config"
@@ -31,6 +31,7 @@ func NewClient(logger log.Logger, conf *config.Slack, timeService stime.TimeServ
 		logger:      logger,
 		conf:        *conf,
 		timeService: timeService,
+		lastMod:     make(map[string]latestModification),
 	}
 
 	underlying := slack.New(conf.ApiToken)
@@ -46,13 +47,24 @@ type client struct {
 	logger      log.Logger
 	conf        config.Slack
 	timeService stime.TimeService
+	underlying  *slack.Client
+	mu          sync.Mutex
 
-	underlying *slack.Client
+	lastMod   map[string]latestModification
+	lastModMu sync.RWMutex
+}
+
+type latestModification struct {
+	modifiedAt  time.Time
+	nextCheckIn time.Time
 }
 
 var _ Client = (&client{})
 
 func (c *client) Setup(ctx context.Context, check config.Check) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	err := c.setupScheduledMessage(ctx, check)
 	if err != nil {
 		return fmt.Errorf("setup scheduled message: %w", err)
@@ -60,6 +72,10 @@ func (c *client) Setup(ctx context.Context, check config.Check) error {
 
 	return nil
 }
+
+const (
+	quiescencePeriod = 5 * time.Minute
+)
 
 func (c *client) setupScheduledMessage(ctx context.Context, check config.Check) error {
 	logger := c.logger.With(log.Fields{
@@ -92,7 +108,7 @@ func (c *client) setupScheduledMessage(ctx context.Context, check config.Check) 
 func (c *client) findScheduledMessages(ctx context.Context, logger log.Logger, check config.Check) ([]slack.ScheduledMessage, error) {
 	params := &slack.GetScheduledMessagesParameters{
 		Channel: c.conf.ChannelID,
-		Limit:   20,
+		Limit:   100,
 	}
 	messages, _, err := c.underlying.GetScheduledMessagesContext(ctx, params)
 	if err != nil {
@@ -109,13 +125,18 @@ func (c *client) findScheduledMessages(ctx context.Context, logger log.Logger, c
 			"text":                 log.String(msg.Text),
 		})
 
-		if strings.Contains(msg.Text, check.ID) && strings.Contains(msg.Text, "check-in") {
+		if strings.Contains(msg.Text, fmt.Sprintf("%s did not check-in", check.ID)) {
 			logger.Log("found matching scheduled message")
 			out = append(out, msg)
 		} else {
 			logger.Log("found unrelated scheduled message")
 		}
 	}
+
+	if len(out) > 1 {
+		logger.Error().Logf("found %d duplicate messages for check %s", len(out), check.ID)
+	}
+
 	return out, nil
 }
 
@@ -154,13 +175,45 @@ func (c *client) createSnoozedMessage(ctx context.Context, logger log.Logger, ch
 }
 
 func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.lastModMu.RLock()
+	lastMod, exists := c.lastMod[check.ID]
+	c.lastModMu.RUnlock()
+
+	now := c.timeService.Now()
+	if exists && now.Sub(lastMod.modifiedAt) < quiescencePeriod {
+		// Skip if we're within the quiescence period - another instance just handled a check-in for this check
+		return lastMod.nextCheckIn, nil
+	}
+
 	logger := c.logger.With(log.Fields{
 		"channel_id": log.String(c.conf.ChannelID),
 		"check":      log.String(check.ID),
 	})
 
-	// Calculate schedule timing
-	now := c.timeService.Now()
+	// Delete existing messages
+	messages, err := c.findScheduledMessages(ctx, logger, check)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("finding scheduled messages: %w", err)
+	}
+
+	for _, msg := range messages {
+		logger.Info().With(log.Fields{
+			"message_id": log.String(msg.ID),
+			"post_at":    log.String(time.Unix(int64(msg.PostAt), 0).Format(time.RFC3339)),
+		}).Log("deleting scheduled message")
+
+		err = c.deleteScheduledMessage(ctx, msg)
+		if err != nil {
+			if !strings.Contains(err.Error(), "invalid_scheduled_message_id") {
+				logger.Error().LogErrorf("failed to delete scheduled message: %v", err)
+			}
+		}
+	}
+
+	// Calculate next check-in time
 	scheduleTime, _, err := snooze.Calculate(now, check.Schedule)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("calculating snooze: %w", err)
@@ -172,57 +225,27 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 		return time.Time{}, logger.Error().LogError(err).Err()
 	}
 
-	// Find existing messages
-	messages, err := c.findScheduledMessages(ctx, logger, check)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("finding scheduled message: %w", err)
-	}
-
-	// Calculate next check-in window
+	// Calculate next window
 	_, wait, err := snooze.Calculate(scheduleTime, check.Schedule)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("calculating second snooze: %w", err)
-	}
-	nextCheckIn := scheduleTime.Add(wait)
-
-	// If we found existing messages, handle rescheduling
-	if len(messages) > 0 {
-		// Sort by post time to get the latest
-		sort.Slice(messages, func(i, j int) bool {
-			return messages[i].PostAt > messages[j].PostAt
-		})
-
-		currentMsg := messages[0]
-		currentPostAt := time.Unix(int64(currentMsg.PostAt), 0)
-
-		// Only update if we're extending the time further out
-		if nextCheckIn.After(currentPostAt) {
-			// Delete existing messages (cleanup any duplicates too)
-			for _, msg := range messages {
-				err = c.deleteScheduledMessage(ctx, msg)
-				if err != nil && !strings.Contains(err.Error(), "invalid_scheduled_message_id") {
-					return time.Time{}, fmt.Errorf("deleting message: %w", err)
-				}
-			}
-
-			// Create new message with extended time
-			_, err = c.createSnoozedMessage(ctx, logger, check, now, nextCheckIn.Sub(now))
-			if err != nil {
-				return time.Time{}, fmt.Errorf("creating new message: %w", err)
-			}
-		} else {
-			logger.Info().Logf("keeping existing message scheduled for %v as it's further out", currentPostAt)
-			nextCheckIn = currentPostAt
-		}
-	} else {
-		// No existing message, create new one
-		_, err = c.createSnoozedMessage(ctx, logger, check, now, nextCheckIn.Sub(now))
-		if err != nil {
-			return time.Time{}, fmt.Errorf("creating initial message: %w", err)
-		}
+		return time.Time{}, fmt.Errorf("calculating next window: %w", err)
 	}
 
-	return nextCheckIn, nil
+	// Create new message
+	nextCheckin, err := c.createSnoozedMessage(ctx, logger, check, now, wait)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("creating new message: %w", err)
+	}
+
+	// Record the modification time
+	c.lastModMu.Lock()
+	c.lastMod[check.ID] = latestModification{
+		modifiedAt:  now,
+		nextCheckIn: nextCheckin,
+	}
+	c.lastModMu.Unlock()
+
+	return nextCheckin, nil
 }
 
 func (c *client) deleteScheduledMessage(ctx context.Context, msg slack.ScheduledMessage) error {
