@@ -51,6 +51,7 @@ func TestClient(t *testing.T) {
 	cc := newTestClient(t)
 
 	ctx := context.Background()
+	logger := log.NewTestLogger()
 
 	check := config.Check{
 		ID:          fmt.Sprintf("%d", time.Now().Unix()),
@@ -68,18 +69,18 @@ func TestClient(t *testing.T) {
 		},
 	}
 
-	found, err := cc.findScheduledMessage(ctx, check)
+	found, err := cc.findScheduledMessages(ctx, logger, check)
 	require.NoError(t, err)
-	require.Nil(t, found)
+	require.Empty(t, found)
 
 	err = cc.Setup(ctx, check)
 	require.NoError(t, err)
 
-	found, err = cc.findScheduledMessage(ctx, check)
+	found, err = cc.findScheduledMessages(ctx, logger, check)
 	require.NoError(t, err)
-	require.NotNil(t, found)
+	require.NotEmpty(t, found)
 
 	nextCheckin, err := cc.CheckIn(ctx, check)
 	require.NoError(t, err)
-	require.InDelta(t, nextCheckin.Unix(), int64(found.PostAt), 10) // 10s
+	require.InDelta(t, nextCheckin.Unix(), int64(found[0].PostAt), 10) // 10s
 }

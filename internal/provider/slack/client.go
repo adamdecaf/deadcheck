@@ -66,11 +66,11 @@ func (c *client) setupScheduledMessage(ctx context.Context, check config.Check) 
 		"check":      log.String(check.ID),
 	})
 
-	msg, err := c.findScheduledMessage(ctx, check)
+	messages, err := c.findScheduledMessages(ctx, logger, check)
 	if err != nil {
 		return fmt.Errorf("finding scheduled message: %w", err)
 	}
-	if msg == nil {
+	if len(messages) == 0 {
 		now := c.timeService.Now()
 		_, wait, err := snooze.Calculate(now, check.Schedule)
 		if err != nil {
@@ -82,13 +82,13 @@ func (c *client) setupScheduledMessage(ctx context.Context, check config.Check) 
 			return fmt.Errorf("setting up snoozed message: %w", err)
 		}
 	} else {
-		logger.Info().Logf("using scheduled message %s", msg.ID)
+		logger.Info().Logf("found scheduled message %s (and %d more)", messages[0].ID, len(messages)-1)
 	}
 
 	return nil
 }
 
-func (c *client) findScheduledMessage(ctx context.Context, check config.Check) (*slack.ScheduledMessage, error) {
+func (c *client) findScheduledMessages(ctx context.Context, logger log.Logger, check config.Check) ([]slack.ScheduledMessage, error) {
 	params := &slack.GetScheduledMessagesParameters{
 		Channel: c.conf.ChannelID,
 		Limit:   20,
@@ -97,12 +97,25 @@ func (c *client) findScheduledMessage(ctx context.Context, check config.Check) (
 	if err != nil {
 		return nil, fmt.Errorf("getting scheduled messages from %v failed: %w", params.Channel, err)
 	}
+
+	var out []slack.ScheduledMessage
 	for _, msg := range messages {
+		postAt := time.Unix(int64(msg.PostAt), 0)
+
+		logger := logger.Debug().With(log.Fields{
+			"post_at":              log.String(postAt.Format(time.RFC3339)),
+			"scheduled_message_id": log.String(msg.ID),
+			"text":                 log.String(msg.Text),
+		})
+
 		if strings.Contains(msg.Text, check.ID) && strings.Contains(msg.Text, "check-in") {
-			return &msg, nil
+			logger.Log("found matching scheduled message")
+			out = append(out, msg)
+		} else {
+			logger.Log("found unrelated scheduled message")
 		}
 	}
-	return nil, nil
+	return out, nil
 }
 
 func (c *client) createSnoozedMessage(ctx context.Context, logger log.Logger, check config.Check, now time.Time, wait time.Duration) (time.Time, error) {
@@ -159,18 +172,19 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 	}
 
 	// Check-in is allowed, delete the scheduled message and queue a new one
-	msg, err := c.findScheduledMessage(ctx, check)
+	messages, err := c.findScheduledMessages(ctx, logger, check)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("finding scheduled message: %w", err)
 	}
 
 	// Delete the existing message (assume it's in a very-near future)
-	if msg != nil {
+	for _, msg := range messages {
 		postAt := time.Unix(int64(msg.PostAt), 0)
 
 		logger.With(log.Fields{
 			"post_at":              log.String(postAt.Format(time.RFC3339)),
 			"scheduled_message_id": log.String(msg.ID),
+			"text":                 log.String(msg.Text),
 		}).Log("deleting scheduled message")
 
 		err = c.deleteScheduledMessage(ctx, msg)
@@ -200,7 +214,7 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 	return nextCheckin, nil
 }
 
-func (c *client) deleteScheduledMessage(ctx context.Context, msg *slack.ScheduledMessage) error {
+func (c *client) deleteScheduledMessage(ctx context.Context, msg slack.ScheduledMessage) error {
 	params := &slack.DeleteScheduledMessageParameters{
 		Channel:            c.conf.ChannelID,
 		ScheduledMessageID: msg.ID,
