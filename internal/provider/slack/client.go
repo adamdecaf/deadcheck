@@ -166,6 +166,13 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 
 	// Delete the existing message (assume it's in a very-near future)
 	if msg != nil {
+		postAt := time.Unix(int64(msg.PostAt), 0)
+
+		logger.With(log.Fields{
+			"post_at":              log.String(postAt.Format(time.RFC3339)),
+			"scheduled_message_id": log.String(msg.ID),
+		}).Log("deleting scheduled message")
+
 		err = c.deleteScheduledMessage(ctx, msg)
 		if err != nil {
 			return time.Time{}, logger.Error().LogErrorf("problem deleting scheduled message: %w", err).Err()
