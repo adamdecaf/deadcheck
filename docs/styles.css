@@ -1,3 +1,7 @@
+:root {
+    --primary-color: hsl(32 35% 68% / 1);
+}
+
 /* General Reset */
 * {
     margin: 0;
@@ -15,7 +19,7 @@ body {
 
 /* Header */
 header {
-    background-color: #4CAF50;
+    background-color: var(--primary-color);
     color: white;
     padding: 10px 0;
     text-align: center;
@@ -58,7 +62,7 @@ main {
 }
 
 main h2 {
-    color: #4CAF50;
+    color: var(--primary-color);
     margin-bottom: 15px;
 }
 
@@ -91,7 +95,7 @@ footer p {
 
 /* Links */
 a {
-    color: #4CAF50;
+    color: var(--primary-color);
 }
 
 a:hover {

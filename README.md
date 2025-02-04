@@ -1,3 +1,5 @@
+[![Deadcheck Logo](./docs/images/logo2.png)](https://github.com/adamdecaf/deadcheck)
+
 # deadcheck
 
 [![GoDoc](https://godoc.org/github.com/adamdecaf/deadcheck?status.svg)](https://godoc.org/github.com/adamdecaf/deadcheck)
