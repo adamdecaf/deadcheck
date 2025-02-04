@@ -175,7 +175,10 @@ func (c *client) CheckIn(ctx context.Context, check config.Check) (time.Time, er
 
 		err = c.deleteScheduledMessage(ctx, msg)
 		if err != nil {
-			return time.Time{}, logger.Error().LogErrorf("problem deleting scheduled message: %w", err).Err()
+			// Skip invalid_scheduled_message_id as another instance may have deleted it
+			if !strings.Contains(err.Error(), "invalid_scheduled_message_id") {
+				return time.Time{}, logger.Error().LogErrorf("problem deleting scheduled message: %w", err).Err()
+			}
 		}
 	}
 
