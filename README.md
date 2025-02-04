@@ -1,4 +1,6 @@
-[![Deadcheck Logo](./docs/images/logo2.png)](https://github.com/adamdecaf/deadcheck)
+<p align="center">
+  <img src="./docs/images/logo2.png" alt="Deadcheck Logo" />
+</p>
 
 # deadcheck
 
