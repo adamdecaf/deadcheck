@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -113,7 +114,11 @@ func (c *client) createSnoozedMessage(ctx context.Context, logger log.Logger, ch
 	expectedCheckin := now.Add(wait)
 	text := fmt.Sprintf("%s did not check-in, expected check-in at %v", check.ID, expectedCheckin.Format(time.RFC3339))
 	opts := []slack.MsgOption{
+		slack.MsgOptionUsername(cmp.Or(c.conf.Username, "deadcheck")),
 		slack.MsgOptionText(text, false),
+	}
+	if c.conf.ImageURI != "" {
+		opts = append(opts, slack.MsgOptionIconURL(c.conf.ImageURI))
 	}
 
 	postAt := fmt.Sprintf("%d", scheduleTime.Add(wait).Unix())

@@ -142,16 +142,24 @@ func ReadPagerDutyFromEnv() *PagerDuty {
 type Slack struct {
 	ApiToken  string
 	ChannelID string
+
+	Username string
+	ImageURI string
 }
 
 func ReadSlackFromEnv() *Slack {
 	apiToken := os.Getenv("DEADCHECK_SLACK_API_TOKEN")
 	channelID := os.Getenv("DEADCHECK_SLACK_CHANNEL_ID")
 
+	username := os.Getenv("DEADCHECK_SLACK_USERNAME")
+	imageURI := os.Getenv("DEADCHECK_SLACK_IMAGE_URI")
+
 	if apiToken != "" && channelID != "" {
 		return &Slack{
 			ApiToken:  apiToken,
 			ChannelID: channelID,
+			Username:  username,
+			ImageURI:  imageURI,
 		}
 	}
 

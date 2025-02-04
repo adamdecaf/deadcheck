@@ -108,6 +108,8 @@ func mergeAlertConfigs(local, global config.Alert) config.Alert {
 		out.Slack = &config.Slack{
 			ApiToken:  cmp.Or(local.Slack.ApiToken, global.Slack.ApiToken),
 			ChannelID: cmp.Or(local.Slack.ChannelID, global.Slack.ChannelID),
+			Username:  cmp.Or(local.Slack.Username, global.Slack.Username),
+			ImageURI:  cmp.Or(local.Slack.ImageURI, global.Slack.ImageURI),
 		}
 	}
 
