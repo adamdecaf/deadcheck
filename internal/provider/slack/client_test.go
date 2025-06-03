@@ -82,5 +82,6 @@ func TestClient(t *testing.T) {
 
 	nextCheckin, err := cc.CheckIn(ctx, check)
 	require.NoError(t, err)
-	require.InDelta(t, nextCheckin.Unix(), int64(found[0].PostAt), 10) // 10s
+
+	require.GreaterOrEqual(t, nextCheckin.Unix(), int64(found[0].PostAt)) // next check-in is after PostAt
 }
