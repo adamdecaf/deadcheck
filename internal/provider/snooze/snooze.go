@@ -60,7 +60,7 @@ func Calculate(now time.Time, schedule config.ScheduleConfig) (time.Time, time.D
 		return now, schedule.Every.Interval, nil
 
 	case schedule.Weekdays != nil, schedule.BankingDays != nil:
-		// Scheduled check-ins are snoozed until their next possible occurance.
+		// Scheduled check-ins are snoozed until their next possible occurrence.
 		var times []time.Time
 		if schedule.Weekdays != nil {
 			ts, err := schedule.Weekdays.GetTimes()
