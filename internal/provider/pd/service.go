@@ -39,7 +39,7 @@ func (c *client) findService(ctx context.Context, name string) (*pagerduty.Servi
 		Offset: 0,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("listing services: %v", err)
+		return nil, fmt.Errorf("listing services: %w", err)
 	}
 
 	for i := range resp.Services {

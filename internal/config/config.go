@@ -20,7 +20,7 @@ func Load(path string) (*Config, error) {
 
 	fullpath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, fmt.Errorf("path %s expansion failed: %v", path, err)
+		return nil, fmt.Errorf("path %s expansion failed: %w", path, err)
 	}
 
 	var cfg Config
