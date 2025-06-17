@@ -52,7 +52,7 @@ func (c *client) ping() error {
 	ctx := context.Background()
 	resp, err := c.underlying.ListAbilitiesWithContext(ctx)
 	if err != nil {
-		return fmt.Errorf("pagerduty list abilities: %v", err)
+		return fmt.Errorf("pagerduty list abilities: %w", err)
 	}
 	if len(resp.Abilities) <= 0 {
 		return errors.New("pagerduty: missing abilities")
