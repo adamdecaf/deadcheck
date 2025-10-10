@@ -8,7 +8,7 @@ require (
 	github.com/PagerDuty/go-pagerduty v1.8.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/moov-io/base v0.57.1
+	github.com/moov-io/base v0.60.0
 	github.com/slack-go/slack v0.17.3
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
