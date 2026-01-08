@@ -40,6 +40,9 @@ func Load(path string) (*Config, error) {
 	}
 
 	// Read environment variables for config
+	if hc := ReadHealthChecksIOFromEnv(); hc != nil {
+		cfg.Alert.HealthChecksIO = hc
+	}
 	if pd := ReadPagerDutyFromEnv(); pd != nil {
 		cfg.Alert.PagerDuty = pd
 	}
@@ -107,8 +110,24 @@ func (t PartialDay) GetTimes() ([]time.Time, error) {
 }
 
 type Alert struct {
-	PagerDuty *PagerDuty `yaml:"pagerduty"`
-	Slack     *Slack
+	HealthChecksIO *HealthChecksIO `yaml:"healthchecksio"`
+	PagerDuty      *PagerDuty      `yaml:"pagerduty"`
+	Slack          *Slack
+}
+
+type HealthChecksIO struct {
+	ApiKey string `yaml:"apiKey"`
+}
+
+func ReadHealthChecksIOFromEnv() *HealthChecksIO {
+	apiKey := strings.TrimSpace(os.Getenv("HEALTHCHECKSIO_API_KEY"))
+
+	if apiKey != "" {
+		return &HealthChecksIO{
+			ApiKey: apiKey,
+		}
+	}
+	return nil
 }
 
 type PagerDuty struct {

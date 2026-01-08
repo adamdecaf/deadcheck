@@ -14,7 +14,7 @@
 
 Deadcheck is a versatile [dead man's switch](https://en.wikipedia.org/wiki/Dead_man's_switch) designed to be independent of the infrastructure hosting it. The project allows users to set up checks that must be periodically "confirmed" to indicate that everything is fine. If a check isn't confirmed within the specified time, Deadcheck triggers a set of actions, such as sending alerts or executing tasks to ensure that the necessary steps are taken in the event you're no longer able to do so.
 
-Deadcheck is an automated dead man's switch that **doesn't rely on its own uptime**. Instead, it uses external services for final triggers, ensuring alerts and actions occur even if the hosting infrastructure is down. Deadcheck relies on third parties (e.g., PagerDuty) to handle alerts when a check is missed.
+Deadcheck is an automated dead man's switch that **doesn't rely on its own uptime**. Instead, it uses external services for final triggers, ensuring alerts and actions occur even if the hosting infrastructure is down. Deadcheck relies on third parties (e.g., HealthChecks.io, PagerDuty) to handle alerts when a check is missed.
 
 ## Features
 
@@ -67,6 +67,9 @@ checks:
 
 # Global alert configuration
 alert:
+  # healthchecksio:
+  #   apiKey: "string"
+
   # pagerduty:
   #   apiKey: "<string>"
   #   escalationPolicy: "<string>"
@@ -91,6 +94,7 @@ Successful response, or failure in the response.
 
 ## Integrations
 
+- [HealthChecks.io](https://healthchecks.io/): Stable lightweight server monitoring used by thousands of companies.
 - PagerDuty: A service is used and incident created but snoozed preventing notifications. Each successful check-in pushes the snooze out into the future until the next expected check-in.
 - Slack: Schedule messages in the future which notify on failed check-ins.
 
