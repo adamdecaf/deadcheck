@@ -37,13 +37,27 @@
 </code></pre>
 
             <h3>Basic Configuration</h3>
+            <p>The alert section of the configuration allows you to integrate Deadcheck with various notification services. You can configure one or more alert integrations (HealthChecks.io, PagerDuty, or Slack) under the top-level <code>alert</code> key. Only one integration is typically active at a time, depending on your needs.</p>
+
+            <h4>HealthChecks.io</h4>
+            <p>To send failure alerts to HealthChecks.io, provide your API key. Deadcheck will ping the service when a check misses its scheduled check-in window.</p>
             <pre><code>alert:
   healthchecksio:
     apiKey: "string"
+</code></pre>
+
+            <h4>PagerDuty</h4>
+            <p>For PagerDuty integration, specify your API key (integration key), the escalation policy ID, and optionally a custom "from" email address. This will trigger incidents in PagerDuty when alerts fire.</p>
+            <pre><code>alert:
   pagerduty:
     apiKey: "string"
     escalationPolicy: "string"
     [ from: "string" ]
+</code></pre>
+
+            <h4>Slack</h4>
+            <p>Slack integration requires a bot token (starting with <code>xoxb-</code>) and the target channel ID. Deadcheck will post alert messages directly to the specified Slack channel when a check fails.</p>
+            <pre><code>alert:
   slack:
     apiToken: "string"
     channelID: "string"
