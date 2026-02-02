@@ -31,6 +31,10 @@ func NewClient(logger log.Logger, conf config.Alert) (Client, error) {
 
 	case conf.Slack != nil:
 		return slack.NewClient(logger, conf.Slack, timeService)
+
+	case conf.Mock != nil:
+		return NewMockClient(logger), nil
+
 	}
 	return nil, errors.New("no provider configured")
 }

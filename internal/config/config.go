@@ -112,7 +112,9 @@ func (t PartialDay) GetTimes() ([]time.Time, error) {
 type Alert struct {
 	HealthChecksIO *HealthChecksIO `yaml:"healthchecksio"`
 	PagerDuty      *PagerDuty      `yaml:"pagerduty"`
-	Slack          *Slack
+	Slack          *Slack          `yaml:"slack"`
+
+	Mock *MockAlerter `yaml:"mock"`
 }
 
 type HealthChecksIO struct {
@@ -184,3 +186,5 @@ func ReadSlackFromEnv() *Slack {
 
 	return nil
 }
+
+type MockAlerter struct{}

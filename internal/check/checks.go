@@ -113,5 +113,9 @@ func mergeAlertConfigs(local, global config.Alert) config.Alert {
 		}
 	}
 
+	if local.Mock != nil || global.Mock != nil {
+		out.Mock = cmp.Or(local.Mock, global.Mock)
+	}
+
 	return out
 }
