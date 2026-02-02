@@ -86,6 +86,15 @@ func (xs *Instances) CheckIn(ctx context.Context, logger log.Logger, checkID str
 func mergeAlertConfigs(local, global config.Alert) config.Alert {
 	var out config.Alert
 
+	// HealtChecks.io
+	out.HealthChecksIO = cmp.Or(local.HealthChecksIO, global.HealthChecksIO)
+
+	if local.HealthChecksIO != nil && global.HealthChecksIO != nil {
+		out.HealthChecksIO = &config.HealthChecksIO{
+			ApiKey: cmp.Or(local.HealthChecksIO.ApiKey, global.HealthChecksIO.ApiKey),
+		}
+	}
+
 	// PagerDuty config merging
 	out.PagerDuty = cmp.Or(local.PagerDuty, global.PagerDuty)
 
