@@ -29,7 +29,7 @@ func Server(logger log.Logger, conf config.ServerConfig, instances *check.Instan
 	}
 
 	router.
-		Methods("PUT").
+		Methods("POST", "PUT").
 		Path("/checks/{checkID}/check-in").
 		HandlerFunc(checkIn(logger, instances))
 
