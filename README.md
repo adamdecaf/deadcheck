@@ -83,6 +83,8 @@ alert:
 
 ## Usage
 
+Make an HTTP `POST` or `PUT` to deadcheck:
+
 ```
 PUT /v1/checks/{id}/check-in
 ```
