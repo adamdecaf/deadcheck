@@ -12,7 +12,7 @@ require (
 	github.com/moov-io/base v0.63.3
 	github.com/slack-go/slack v0.29.0
 	github.com/spf13/viper v1.21.0
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/otel v1.45.0
 	go.opentelemetry.io/otel/trace v1.45.0
 )
