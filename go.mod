@@ -9,7 +9,7 @@ require (
 	github.com/adamdecaf/go-healthchecksio v0.2.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/moov-io/base v0.68.1
+	github.com/moov-io/base v0.68.2
 	github.com/slack-go/slack v0.35.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
